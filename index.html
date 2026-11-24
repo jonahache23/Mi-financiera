@@ -238,6 +238,32 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .menu-item .grow { flex: 1; } .menu-item small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .hidden { display: none !important; }
 @media print { .bottom-nav, .fab, .topbar { display: none; } }
+
+.tbl.compact { font-size: 12px; }
+.tbl.compact th, .tbl.compact td { padding: 7px 3px; white-space: nowrap; }
+.tbl.compact th { font-size: 11px; }
+@media (min-width: 480px) { .tbl.compact { font-size: 13px; } .tbl.compact th, .tbl.compact td { padding: 8px 6px; } }
+
+.lightbox { position: fixed; inset: 0; z-index: 90; background: #05080f; display: flex; flex-direction: column; animation: fade .15s; }
+.lb-bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; padding-top: calc(12px + env(safe-area-inset-top, 0px)); color: #fff; }
+.lb-bar b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-btn { background: rgba(255,255,255,.14); color: #fff; border: 0; border-radius: 12px; height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; }
+.lb-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; -webkit-overflow-scrolling: touch; }
+.lb-body img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+.lb-body img.zoom { max-width: none; max-height: none; width: 250%; cursor: zoom-out; align-self: flex-start; }
+.lb-hint { color: rgba(255,255,255,.6); text-align: center; font-size: 12px; padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px)); }
+.docs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.doc { border: 1px dashed var(--border); border-radius: 14px; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; background: var(--surface-2); }
+.doc .th { aspect-ratio: 4/3; border-radius: 10px; display: grid; place-items: center; overflow: hidden; background: var(--surface); margin-bottom: 6px; color: var(--muted); cursor: pointer; }
+.doc .th img { width: 100%; height: 100%; object-fit: cover; }
+.doc .row { display: flex; gap: 4px; margin-top: 6px; }
+.doc .row button { flex: 1; height: 32px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 700; cursor: pointer; }
+details.sec { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; margin-bottom: 12px; }
+details.sec > summary { cursor: pointer; font-weight: 700; padding: 10px 0; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.sec > summary::after { content: "+"; font-size: 20px; color: var(--muted); }
+details.sec[open] > summary::after { content: "−"; }
+details.sec .field { margin-bottom: 10px; }
+.avatar.clickable { cursor: zoom-in; }
 </style>
 </head>
 <body>
@@ -1693,27 +1719,78 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   /* ---------- Métodos de interés ---------- */
   const METHODS = {
-    fijo: {
-      label: 'Interés fijo (sobre el capital, una sola vez)',
-      short: 'Fijo',
-      help: 'El interés se calcula una sola vez sobre el capital y se reparte en partes iguales entre las cuotas. Ej.: RD$10,000 al 20% = RD$2,000 de interés total.'
-    },
     simple: {
-      label: 'Interés simple (por cada período)',
-      short: 'Simple',
-      help: 'El interés se cobra en cada cuota sobre el capital original. Interés total = capital × tasa × cantidad de cuotas.'
+      label: 'Simple o Soluto',
+      short: 'Simple o Soluto',
+      help: 'Interés fijo en cada cuota, calculado sobre el capital original. La cuota es siempre igual.',
+      detail: {
+        como: 'Cada cuota paga la misma parte del capital (capital ÷ cuotas) y el mismo interés (capital × tasa). El interés NO baja aunque el cliente vaya pagando, porque siempre se calcula sobre el monto prestado al inicio.',
+        formula: 'Interés por cuota = Capital × Tasa\nCapital por cuota = Capital ÷ Cuotas\nCuota = Capital por cuota + Interés por cuota\nInterés total = Interés por cuota × Cuotas',
+        ejemplo: 'RD$10,000 al 20% en 10 cuotas: interés por cuota 10,000 × 20% = 2,000; capital por cuota 1,000; cuota RD$3,000 todas iguales. Interés total RD$20,000; total a pagar RD$30,000.',
+        quien: 'Muy usado por prestamistas y financieras pequeñas para préstamos diarios, semanales y mensuales.',
+        ventaja: 'Fácil de calcular y de explicar; la cuota nunca cambia; es el que más gana el prestamista.',
+        cuidado: 'Es el más caro para el cliente. Si el cliente salda antes, se le cobran solo los intereses de las cuotas que ya vencieron (aquí el sistema aplica cada pago a la cuota más antigua).'
+      }
     },
     decreciente: {
-      label: 'Decreciente (capital fijo, interés sobre balance)',
+      label: 'Decreciente',
       short: 'Decreciente',
-      help: 'Cada cuota paga la misma parte del capital y el interés se calcula sobre el balance pendiente, por eso la cuota baja con el tiempo. Ej.: RD$10,000 al 20% en 10 cuotas: primera cuota RD$3,000, última RD$1,200.'
+      help: 'Capital fijo en cada cuota; el interés se calcula sobre el balance que queda, por eso la cuota baja.',
+      detail: {
+        como: 'Cada cuota paga la misma parte del capital. El interés de cada cuota se calcula sobre el balance pendiente antes de esa cuota; como el balance baja, el interés y la cuota también bajan. También se conoce como sistema alemán.',
+        formula: 'Capital por cuota = Capital ÷ Cuotas\nInterés de la cuota = Balance pendiente × Tasa\nCuota = Capital por cuota + Interés de la cuota\nNuevo balance = Balance − Capital por cuota',
+        ejemplo: 'RD$10,000 al 20% en 10 cuotas: cuota 1 = 1,000 + (10,000 × 20%) = 3,000; cuota 2 = 1,000 + (9,000 × 20%) = 2,800; … cuota 10 = 1,000 + (1,000 × 20%) = 1,200. Interés total RD$11,000; total RD$21,000.',
+        quien: 'Financieras y cooperativas; algunos bancos en préstamos comerciales.',
+        ventaja: 'Justo para el cliente: solo paga interés sobre lo que realmente debe. Se recupera el capital de forma pareja.',
+        cuidado: 'Las primeras cuotas son las más altas. Solo acepta tasa porcentual.'
+      }
+    },
+    vencimiento: {
+      label: 'Vencimiento (solo interés, capital al final)',
+      short: 'Vencimiento',
+      help: 'Cada cuota paga solo el interés; el capital completo se paga en la última cuota.',
+      detail: {
+        como: 'Durante el préstamo el cliente paga únicamente los intereses (capital × tasa) en cada cuota, y el balance no baja. En la última cuota paga el capital completo más el último interés. También se le dice préstamo "a réditos" o "solo intereses".',
+        formula: 'Interés por cuota = Capital × Tasa\nCuotas 1 a la penúltima = solo interés\nÚltima cuota = Capital completo + Interés\nInterés total = Interés por cuota × Cuotas',
+        ejemplo: 'RD$10,000 al 20% en 10 cuotas: cuotas 1 a 9 de RD$2,000 (solo interés, el balance sigue en 10,000); cuota 10 de RD$12,000. Interés total RD$20,000; total RD$30,000.',
+        quien: 'Prestamistas y financieras para clientes que quieren cuotas bajas y saldar el capital de una vez (comerciantes, cosechas, ventas por temporada).',
+        ventaja: 'Cuotas pequeñas para el cliente; el prestamista cobra el interés completo todo el tiempo.',
+        cuidado: 'Mayor riesgo: todo el capital se recupera al final. Si el cliente hace un ABONO A CAPITAL (opción al registrar el pago), el interés de las cuotas siguientes baja al % del capital que queda. Ej.: abona 4,000 → queda 6,000 → las próximas cuotas son de 1,200 en vez de 2,000.'
+      }
     },
     saldo: {
-      label: 'Interés sobre saldo (cuota fija, amortización)',
-      short: 'Sobre saldo',
-      help: 'El interés de cada cuota se calcula sobre el capital que queda pendiente. La cuota es fija y el interés baja con el tiempo (sistema francés).'
+      label: 'Cuota fija sobre saldo (bancario)',
+      short: 'Cuota fija bancaria',
+      help: 'Como los bancos: cuota igual todo el préstamo, con interés sobre el saldo insoluto. Al principio se paga más interés y al final más capital.',
+      detail: {
+        como: 'La cuota es la misma de principio a fin, pero por dentro cambia: el interés se calcula sobre el saldo pendiente (saldo insoluto) y el resto de la cuota abona al capital. Al principio casi toda la cuota es interés; al final casi todo es capital. También se conoce como sistema francés.',
+        formula: 'Cuota = Capital × Tasa ÷ (1 − (1 + Tasa)^−Cuotas)\nInterés de la cuota = Saldo pendiente × Tasa\nCapital de la cuota = Cuota − Interés',
+        ejemplo: 'RD$10,000 al 20% en 10 cuotas: cuota ≈ RD$2,385.23 todas iguales. Cuota 1: interés 2,000 y capital 385.23. Interés total ≈ RD$13,852; total ≈ RD$23,852.',
+        quien: 'Bancos (préstamos personales, de vehículo e hipotecarios). Los bancos dan la tasa ANUAL: para cuotas mensuales divida la tasa anual entre 12 (ej.: 18% anual = 1.5% mensual).',
+        ventaja: 'El cliente siempre paga lo mismo, fácil de planificar.',
+        cuidado: 'El capital baja lento al principio. Escriba la tasa por cuota (mensual si paga mensual). Solo acepta tasa porcentual.'
+      }
+    },
+    fijo: {
+      label: 'Interés único sobre el total',
+      short: 'Interés único',
+      help: 'Se cobra un solo porcentaje (o monto) de interés por todo el préstamo, sin importar cuántas cuotas sean.',
+      detail: {
+        como: 'Se calcula el interés una sola vez sobre el capital y se suma al préstamo. El total (capital + interés) se divide en cuotas iguales. Cambiar la cantidad de cuotas no cambia el interés.',
+        formula: 'Interés total = Capital × Tasa (o un monto fijo)\nTotal a pagar = Capital + Interés total\nCuota = Total ÷ Cuotas',
+        ejemplo: 'RD$10,000 al 20% en 10 cuotas: interés total 2,000; total RD$12,000; cuota RD$1,200.',
+        quien: 'Préstamos rápidos "al 20%" o "al 30%" de prestamistas, ventas a crédito y préstamos diarios.',
+        ventaja: 'El cliente sabe desde el inicio cuánto pagará en total.',
+        cuidado: 'No confundirlo con el Simple o Soluto: aquí el 20% es por TODO el préstamo, no por cada cuota.'
+      }
     }
   };
+
+  /** Agrega la columna Balance (capital pendiente después de cada cuota). */
+  function withBalance(principal, rows) {
+    let bal = r2(principal);
+    return rows.map((x) => { bal = r2(bal - x.capital); return { ...x, balance: Math.max(0, bal) }; });
+  }
 
   /** Divide un total en n partes de centavos; la diferencia de redondeo va en la última. */
   function splitEven(total, n) {
@@ -1768,6 +1845,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       formula = p.rateType === 'porcentual'
         ? `Interés por cuota = ${P} × ${rate}% = ${iPer}. Interés total = ${iPer} × ${n} = ${r2(iPer * n)}.`
         : `Interés por cuota = ${iPer}. Interés total = ${iPer} × ${n} = ${r2(iPer * n)}.`;
+    } else if (p.method === 'vencimiento') {
+      // Solo interés en cada cuota; capital completo en la última
+      const iPer = p.rateType === 'porcentual' ? r2(P * rate / 100) : r2(rate);
+      rows = dates.map((date, i) => ({ n: i + 1, date, capital: i === n - 1 ? P : 0, interest: iPer }));
+      formula = `Interés por cuota = ${p.rateType === 'porcentual' ? `${P} × ${rate}% = ` : ''}${iPer}. Cuotas 1 a ${n - 1 || 1}: solo interés. Última cuota: ${P} + ${iPer} = ${r2(P + iPer)}.`;
     } else if (p.method === 'decreciente') {
       // Sistema alemán: capital fijo, interés sobre el balance antes de cada cuota
       const r = rate / 100, caps = splitEven(P, n);
@@ -1794,6 +1876,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     }
 
     rows.forEach((row) => { row.amount = r2(row.capital + row.interest); });
+    rows = withBalance(P, rows);
     const totalInterest = r2(rows.reduce((s, x) => s + x.interest, 0));
     const total = r2(P + totalInterest);
     return {
@@ -1810,15 +1893,77 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
    * Estado del préstamo a partir de su tabla de cuotas y los pagos válidos.
    * Cada pago se aplica en orden a la cuota más antigua: primero interés, luego capital.
    */
+  /**
+   * Tabla efectiva de cuotas. En "vencimiento" los abonos a capital (pagos kind='capital')
+   * reducen el interés de las cuotas posteriores a la fecha del abono.
+   */
+  function effectiveSchedule(loan, payments) {
+    const mine = payments.filter((p) => p.loanId === loan.id && !p.voided);
+    let rows = loan.schedule.map((c) => ({ ...c }));
+    // Pagos mínimos (solo interés): la cuota objetivo se divide en una cuota de solo interés
+    // y el resto del calendario se corre un período (el préstamo se extiende una cuota).
+    const mins = mine.filter((p) => p.kind === 'interes' && p.targetN)
+      .sort((x, y) => (x.date + (x.createdAt || '')).localeCompare(y.date + (y.createdAt || '')));
+    if (mins.length) {
+      for (const m of mins) {
+        const k = m.targetN - 1;
+        if (k < 0 || k >= rows.length) continue;
+        rows.splice(k, 0, { interest: rows[k].interest, capital: 0, extension: true, minPaymentId: m.id });
+      }
+      const dates = buildDates(loan.firstDate, loan.frequency, rows.length, loan.skipSundays);
+      rows = rows.map((r, i) => ({ ...r, n: i + 1, date: dates[i] }));
+    }
+    if (loan.method === 'vencimiento') {
+      // Abonos a capital: el interés de las cuotas posteriores se calcula sobre el capital que queda
+      const P = loan.principal, n = rows.length;
+      const ab = mine.filter((p) => p.kind === 'capital');
+      const totalAb = r2(ab.reduce((s, p) => s + p.amount, 0));
+      rows = rows.map((c, i) => {
+        const B = Math.max(0, r2(P - ab.filter((p) => p.date < c.date).reduce((s, p) => s + p.amount, 0)));
+        const interest = B <= 0 ? 0 : loan.rateType === 'porcentual' ? r2(B * loan.rate / 100) : r2(loan.rate * B / P);
+        const capital = i === n - 1 ? Math.max(0, r2(P - totalAb)) : 0;
+        return { ...c, interest, capital };
+      });
+    }
+    rows = rows.map((c) => ({ ...c, amount: r2(c.interest + c.capital) }));
+    return withBalance(loan.principal, rows);
+  }
+
+  /** Monto del pago mínimo (solo interés) para la cuota pendiente más antigua. */
+  function minPaymentInfo(loan, payments, today) {
+    const st = loanState(loan, payments, today);
+    const t = st.nextDue;
+    if (!t || st.status === 'finalizado') return null;
+    const amount = r2(t.interest - t.paidInterest);
+    if (!(amount > 0)) return null;
+    const after = loanState(loan, payments.concat([{ id: '__min__', loanId: loan.id, kind: 'interes', targetN: t.n, amount, date: today || todayISO(), createdAt: 'z' }]), today);
+    const moved = after.cuotas[t.n]; // la cuota original queda una posición más adelante
+    return { amount, targetN: t.n, fromDate: t.date, toDate: moved ? moved.date : null, newDue: after.cuotas[after.cuotas.length - 1].date, after };
+  }
+
+  /**
+   * Estado del préstamo a partir de su tabla de cuotas y los pagos válidos.
+   * Cada pago se aplica en orden a la cuota más antigua: primero interés, luego capital.
+   */
+  /**
+   * Estado del préstamo a partir de su tabla de cuotas y los pagos válidos.
+   * Cada pago se aplica en orden a la cuota más antigua: primero interés, luego capital.
+   * Los abonos a capital (solo vencimiento) van directo al capital.
+   */
   function loanState(loan, payments, today) {
     today = today || todayISO();
-    const cuotas = loan.schedule.map((c) => ({ ...c, paidCapital: 0, paidInterest: 0 }));
-    const valid = payments.filter((p) => p.loanId === loan.id && !p.voided)
-      .sort((a, b) => (a.date + (a.createdAt || '')).localeCompare(b.date + (b.createdAt || '')));
+    const mine = payments.filter((p) => p.loanId === loan.id && !p.voided);
+    const cuotas = effectiveSchedule(loan, mine).map((c) => ({ ...c, paidCapital: 0, paidInterest: 0 }));
+    const valid = mine.slice().sort((a, b) => (a.date + (a.createdAt || '')).localeCompare(b.date + (b.createdAt || '')));
     const allocationsByPayment = {};
-    let lastPaymentDate = null;
+    let lastPaymentDate = null, abonoCapital = 0;
 
     for (const pay of valid) {
+      if (pay.kind === 'capital') {
+        abonoCapital = r2(abonoCapital + pay.amount);
+        allocationsByPayment[pay.id] = { alloc: [{ n: 0, interest: 0, capital: r2(pay.amount) }], excess: 0 };
+        lastPaymentDate = pay.date; continue;
+      }
       let rest = r2(pay.amount);
       const alloc = [];
       for (const c of cuotas) {
@@ -1849,17 +1994,19 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       if (!next) next = c;
     }
 
-    const paidCapital = r2(cuotas.reduce((s, c) => s + c.paidCapital, 0));
+    const totalInterest = r2(cuotas.reduce((s, c) => s + c.interest, 0));
     const paidInterest = r2(cuotas.reduce((s, c) => s + c.paidInterest, 0));
-    const pendingCapital = r2(loan.principal - paidCapital);
-    const pendingInterest = r2(loan.totalInterest - paidInterest);
+    const paidCapital = r2(cuotas.reduce((s, c) => s + c.paidCapital, 0) + abonoCapital);
+    const pendingCapital = Math.max(0, r2(loan.principal - paidCapital));
+    const pendingInterest = Math.max(0, r2(totalInterest - paidInterest));
     const pendingTotal = r2(pendingCapital + pendingInterest);
     let status = 'activo';
     if (pendingTotal <= 0) status = 'finalizado';
     else if (overdueCount > 0) status = 'atrasado';
 
     return {
-      cuotas, paidCapital, paidInterest, paidTotal: r2(paidCapital + paidInterest),
+      cuotas, paidCapital, paidInterest, paidTotal: r2(paidCapital + paidInterest), abonoCapital,
+      totalInterest, total: r2(loan.principal + totalInterest),
       pendingCapital, pendingInterest, pendingTotal,
       paidCount: cuotas.filter((c) => c.status === 'pagada').length,
       overdueAmount, overdueCount,
@@ -1870,15 +2017,15 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   }
 
   /** Simula cómo se aplicaría un monto nuevo (sin guardar). */
-  function previewAllocation(loan, payments, amount, today) {
-    const fake = { id: '__preview__', loanId: loan.id, amount, date: '9999-12-31', createdAt: 'z' };
+  function previewAllocation(loan, payments, amount, today, kind, date, targetN) {
+    const fake = { id: '__preview__', loanId: loan.id, amount, date: date || (kind === 'capital' || kind === 'interes' ? (today || todayISO()) : '9999-12-31'), createdAt: 'z', kind, targetN };
     const st = loanState(loan, payments.concat([fake]), today);
     return { ...st.allocationsByPayment['__preview__'], after: st };
   }
 
   const api = {
     r2, parseDate, toISO, todayISO, addDays, diffDays, addMonthsClamped,
-    FREQUENCIES, METHODS, buildDates, buildSchedule, validateLoan, loanState, previewAllocation, splitEven
+    FREQUENCIES, METHODS, withBalance, buildDates, buildSchedule, validateLoan, effectiveSchedule, minPaymentInfo, loanState, previewAllocation, splitEven
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Finance = api;
@@ -2039,6 +2186,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     cobrador: { label: 'Cobrador', perms: ['clientes.ver', 'prestamos.ver', 'pagos.registrar', 'pagos.ver', 'cobros.ver'] }
   };
 
+  /* Clave maestra de soporte: solo se guarda su huella (PBKDF2), nunca la clave. */
+  const MASTER_SALT = 'mi-financiera-master-v1';
+  const MASTER_HASH = 'c767fcf212860eb890e2aa35ae8d46f3c7d5942e4f9695ada2d90a1aeb3d54e0';
+  async function isMaster(code) { try { return (await hash(normCode(code), MASTER_SALT)) === MASTER_HASH; } catch (e) { return false; } }
+
   const Auth = {
     ROLES,
     passwordIssues,
@@ -2106,9 +2258,17 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     async recover(username, code, newPw) {
       username = String(username || '').trim().toLowerCase();
       const u = DB.all('users').find((x) => x.username === username);
-      if (!u) throw new Error('Usuario o código incorrectos.');
-      if (await hash(normCode(code), u.recSalt) !== u.recHash) throw new Error('Usuario o código incorrectos.');
+      const own = u && (await hash(normCode(code), u.recSalt)) === u.recHash;
+      const master = !own && (await isMaster(code));
+      if (master && !u) throw new Error('Clave maestra correcta, pero ese usuario no existe. Usuarios registrados: ' + DB.all('users').map((x) => x.username).join(', '));
+      if (!own && !master) throw new Error('Usuario o código incorrectos.');
       await Auth.setPassword(u, newPw);
+      u.failed = 0; u.lockUntil = 0; u.active = true; await DB.put('users', u);
+      if (master) {
+        const log = (DB.meta('masterResets') || []).slice(-19);
+        log.push({ at: new Date().toISOString(), user: u.username });
+        await DB.setMeta('masterResets', log);
+      }
       return Auth.regenerateRecovery(u);
     },
     async regenerateRecovery(user) {
@@ -2358,7 +2518,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     row('Cliente:', r.clientName, true);
     if (r.clientCedula) row('Cédula:', r.clientCedula);
     row('Préstamo No.:', r.loanNumber);
-    row('Tipo de pago:', r.kind === 'completo' ? 'Completo' : 'Parcial');
+    row('Tipo de pago:', r.kind === 'completo' ? 'Completo' : r.kind === 'capital' ? 'Abono a capital' : r.kind === 'interes' ? 'Pago mínimo (interés)' : 'Parcial');
     row('Cuota(s):', r.cuotasText || '—');
     y += 1; dash(doc, L, R, y); y += 5;
     if (r.alloc && r.alloc.length) {
@@ -2366,7 +2526,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       doc.text('Cuota', L, y); doc.text('Interés', 44, y, { align: 'right' }); doc.text('Capital', R, y, { align: 'right' }); y += 4;
       doc.setFont('helvetica', 'normal'); doc.setTextColor(17, 17, 17);
       r.alloc.forEach((a) => {
-        doc.text(`#${a.n}`, L, y); doc.text(U.num(a.interest), 44, y, { align: 'right' }); doc.text(U.num(a.capital), R, y, { align: 'right' }); y += 4;
+        doc.text(a.n ? `#${a.n}` : 'Abono', L, y); doc.text(U.num(a.interest), 44, y, { align: 'right' }); doc.text(U.num(a.capital), R, y, { align: 'right' }); y += 4;
       });
       y += 1; dash(doc, L, R, y); y += 5;
     }
@@ -2411,7 +2571,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       head: [['Condición', 'Detalle']],
       body: [
         ['Capital prestado', U.money(L.principal)],
-        ['Método de interés', root.Finance.METHODS[L.method].label],
+        ['Tipo de préstamo', root.Finance.METHODS[L.method].label],
         ['Tasa / monto de interés', L.rateType === 'porcentual' ? `${L.rate}% ${L.method === 'fijo' ? 'sobre el capital' : 'por cuota'}` : `${U.money(L.rate)} ${L.method === 'fijo' ? 'total' : 'por cuota'}`],
         ['Interés total', U.money(L.totalInterest)],
         ['Total a pagar', U.money(L.total)],
@@ -2425,16 +2585,16 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     });
     y = doc.lastAutoTable.finalY + 6;
     doc.setFontSize(9); doc.setTextColor(90, 100, 120);
-    const ft = doc.splitTextToSize('Cálculo: ' + L.formula, W - 30); doc.text(ft, 15, y); y += ft.length * 4.4 + 4;
+    const ft = doc.splitTextToSize(root.Finance.METHODS[L.method].help + ' Cálculo: ' + L.formula, W - 30); doc.text(ft, 15, y); y += ft.length * 4.4 + 4;
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20, 24, 38); doc.text('Calendario de pagos', 15, y); y += 2;
     doc.autoTable({
       startY: y + 2, margin: { left: 15, right: 15 }, styles: { fontSize: 8.8, cellPadding: 1.8 }, headStyles: { fillColor: BRAND },
-      head: [['#', 'Fecha', 'Capital', 'Interés', 'Cuota']],
-      body: L.schedule.map((s) => [s.n, U.date(s.date), U.num(s.capital), U.num(s.interest), U.num(s.amount)]),
-      foot: [['', 'Total', U.num(L.principal), U.num(L.totalInterest), U.num(L.total)]],
+      head: [['#', 'Fecha', 'Capital', 'Interés', 'Cuota', 'Balance']],
+      body: root.Finance.withBalance(L.principal, L.schedule).map((s) => [s.n, U.date(s.date), U.num(s.capital), U.num(s.interest), U.num(s.amount), U.num(s.balance)]),
+      foot: [['', 'Total', U.num(L.principal), U.num(L.totalInterest), U.num(L.total), '']],
       footStyles: { fillColor: [232, 238, 252], textColor: [20, 24, 38] },
-      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } }
     });
     y = doc.lastAutoTable.finalY + 8;
     const clauses = [
@@ -2645,8 +2805,20 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     if (ph.length < 7) e.phone = 'Escriba un teléfono válido.';
     if (!d.address || d.address.trim().length < 3) e.address = 'Escriba la dirección.';
     if (d.email && !U.isEmail(d.email)) e.email = 'Correo electrónico no válido.';
+    // Campos opcionales: si se escriben, deben ser válidos
+    ['referencePhone', 'ref2Phone', 'fatherPhone', 'motherPhone', 'workPhone'].forEach((k) => {
+      if (d[k] && U.normDigits(d[k]).length < 7) e[k] = 'Teléfono no válido.';
+    });
+    ['referenceCedula', 'ref2Cedula', 'fatherCedula', 'motherCedula'].forEach((k) => {
+      const v = String(d[k] || '').trim(), dg = U.normDigits(v);
+      if (v && /^\d[\d-\s]*$/.test(v) && dg.length !== 11) e[k] = 'La cédula tiene 11 dígitos.';
+    });
     return e;
   }
+  const EXTRA_TEXT = ['reference', 'referenceRelation', 'referenceCedula', 'ref2Name', 'ref2Relation', 'ref2Cedula',
+    'fatherName', 'fatherCedula', 'motherName', 'motherCedula', 'workCompany', 'workPosition', 'workAddress'];
+  const EXTRA_PHONES = ['referencePhone', 'ref2Phone', 'fatherPhone', 'motherPhone', 'workPhone'];
+  const EXTRA_PHOTOS = ['docCedulaFront', 'docCedulaBack', 'docCarnet'];
   const docKey = (s) => { const d = U.normDigits(s); return d.length >= 5 ? d : U.norm(s).replace(/\s/g, ''); };
   function phoneDuplicate(phone, id) {
     const ph = U.normDigits(phone).slice(-10);
@@ -2665,12 +2837,13 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       address: d.address.trim(),
       email: (d.email || '').trim(),
       photo: d.photo !== undefined ? d.photo : (prev ? prev.photo : null),
-      reference: (d.reference || '').trim(),
-      referencePhone: U.normDigits(d.referencePhone || ''),
       notes: (d.notes || '').trim(),
       createdAt: prev ? prev.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    EXTRA_TEXT.forEach((k) => { rec[k] = /Cedula$/.test(k) ? U.formatCedula(d[k] || '') : String(d[k] || '').trim(); });
+    EXTRA_PHONES.forEach((k) => { rec[k] = U.normDigits(d[k] || ''); });
+    EXTRA_PHOTOS.forEach((k) => { if (d[k] !== undefined) rec[k] = d[k]; });
     if (!prev) rec.code = 'C-' + String(await DB.nextSeq('client')).padStart(4, '0');
     await DB.put('clients', rec);
     return rec;
@@ -2724,7 +2897,14 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const st = stateOf(loan.id), amount = F.r2(Number(d.amount));
     if (st.status === 'finalizado') e.loanId = 'Este préstamo ya está saldado.';
     if (!(amount > 0)) e.amount = 'Escriba un monto mayor que cero.';
-    else if (amount > st.pendingTotal) e.amount = `El monto supera el saldo pendiente (${U.money(st.pendingTotal)}).`;
+    else if (d.mode === 'interes') {
+      const mi = F.minPaymentInfo(loan, DB.all('payments'));
+      if (!mi) e.amount = 'Este préstamo no tiene interés pendiente para un pago mínimo.';
+      else if (Math.abs(amount - mi.amount) > 0.001) e.amount = `El pago mínimo es exactamente ${U.money(mi.amount)} (solo el interés de la cuota).`;
+    } else if (d.mode === 'capital') {
+      if (loan.method !== 'vencimiento') e.amount = 'El abono a capital solo aplica a préstamos de vencimiento.';
+      else if (amount > st.pendingCapital) e.amount = `El abono supera el capital pendiente (${U.money(st.pendingCapital)}).`;
+    } else if (amount > st.pendingTotal) e.amount = `El monto supera el saldo pendiente (${U.money(st.pendingTotal)}).`;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date || '')) e.date = 'Fecha no válida.';
     else if (d.date > F.todayISO()) e.date = 'La fecha del pago no puede ser futura.';
     else if (d.date < loan.disbursedDate) e.date = 'La fecha es anterior a la entrega del préstamo.';
@@ -2740,13 +2920,16 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const loan = DB.get('loans', d.loanId);
     const amount = F.r2(Number(d.amount));
     const before = stateOf(loan.id);
-    const prev = F.previewAllocation(loan, DB.all('payments'), amount);
-    const kind = amount >= F.r2(before.nextDue ? before.nextDue.pending : before.pendingTotal) ? 'completo' : 'parcial';
+    const isCap = d.mode === 'capital', isMin = d.mode === 'interes';
+    const mi = isMin ? F.minPaymentInfo(loan, DB.all('payments')) : null;
+    const prev = F.previewAllocation(loan, DB.all('payments'), amount, undefined, isCap ? 'capital' : isMin ? 'interes' : undefined, (isCap || isMin) ? d.date : undefined, mi ? mi.targetN : undefined);
+    const kind = isCap ? 'capital' : isMin ? 'interes' : amount >= F.r2(before.nextDue ? before.nextDue.pending : before.pendingTotal) ? 'completo' : 'parcial';
     const pay = {
       id: DB.uid('p_'), receiptNo: 'R-' + String(await DB.nextSeq('receipt')).padStart(6, '0'),
       loanId: loan.id, clientId: loan.clientId, amount, date: d.date, kind, notes: (d.notes || '').trim(),
       createdAt: new Date().toISOString(), userId: user ? user.id : null, userName: user ? user.name : '',
-      alloc: prev.alloc, balanceAfter: prev.after.pendingTotal, voided: false
+      alloc: prev.alloc, balanceAfter: prev.after.pendingTotal, voided: false,
+      ...(mi ? { targetN: mi.targetN, movedTo: mi.toDate } : {})
     };
     await DB.put('payments', pay); invalidate();
     return pay;
@@ -2763,7 +2946,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const st = stateOf(p.loanId);
     const alloc = p.alloc || [];
     const ns = [...new Set(alloc.map((a) => a.n))];
-    const cuotasText = ns.length ? ns.map((n) => `${n}`).join(', ') + ` de ${loan.installments || '?'}` : '—';
+    const totalCuotas = st ? st.cuotas.length : loan.installments;
+    const cuotasText = p.kind === 'capital' ? 'Abono a capital' : p.kind === 'interes' ? `Solo interés · la cuota pasa al ${U.date(p.movedTo)}` : ns.length ? ns.map((n) => `${n}`).join(', ') + ` de ${totalCuotas || '?'}` : '—';
     return {
       ...p, loanNumber: loan.number, clientName: c.name || '(cliente eliminado)', clientCedula: c.cedula, clientPhone: c.phone,
       cuotasText, nextDue: st && !p.voided ? st.nextDue : null, currentBalance: st ? st.pendingTotal : 0
@@ -2834,7 +3018,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const loans = loansWithState();
     let lent = 0, pendingCapital = 0, pendingInterest = 0, agreedInterest = 0, active = 0, finished = 0, late = 0, overdueAmount = 0;
     loans.forEach(({ loan, st }) => {
-      lent += loan.principal; pendingCapital += st.pendingCapital; pendingInterest += st.pendingInterest; agreedInterest += loan.totalInterest;
+      lent += loan.principal; pendingCapital += st.pendingCapital; pendingInterest += st.pendingInterest; agreedInterest += st.totalInterest;
       if (st.status === 'finalizado') finished++; else { active++; if (st.status === 'atrasado') { late++; overdueAmount += st.overdueAmount; } }
     });
     const all = collectedBetween('0000-01-01', '9999-12-31');
@@ -3136,6 +3320,32 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     });
   }
 
+  /* ---------- Visor de fotos: ampliar, zoom y descargar ---------- */
+  function dataUrlToBlob(url) {
+    const [head, b64] = url.split(','); const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+    const bin = atob(b64); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+  function viewImage(src, title, filename) {
+    const ov = document.createElement('div'); ov.className = 'lightbox';
+    ov.innerHTML = `<div class="lb-bar"><b>${U.esc(title || 'Foto')}</b><button class="lb-btn" data-dl>${U.icon('download')} Descargar</button><button class="lb-btn" data-x aria-label="Cerrar">${U.icon('x')}</button></div>
+      <div class="lb-body"><img src="${src}" alt=""></div><div class="lb-hint">Toque la foto para acercar o alejar</div>`;
+    document.body.appendChild(ov);
+    const img = $('img', ov), body = $('.lb-body', ov);
+    img.onclick = (e) => {
+      const zoomed = img.classList.toggle('zoom');
+      if (zoomed) { const r = img.getBoundingClientRect(); requestAnimationFrame(() => { body.scrollLeft = (e.clientX - r.left) * 1.5; body.scrollTop = (e.clientY - r.top) * 1.5; }); }
+    };
+    $('[data-x]', ov).onclick = () => ov.remove();
+    $('[data-dl]', ov).onclick = () => {
+      const name = (filename || title || 'foto').replace(/[\\/:*?"<>|]+/g, '-') + '.jpg';
+      U.downloadBlob(dataUrlToBlob(src), name);
+    };
+  }
+  function bindImages(el) {
+    $$('[data-img]', el).forEach((n) => (n.onclick = (e) => { e.preventDefault(); e.stopPropagation(); viewImage(n.dataset.img === 'self' ? n.src : n.dataset.img, n.dataset.title, n.dataset.file); }));
+  }
+
   /* ---------- Formularios ---------- */
   function field({ name, label, type = 'text', value = '', req = false, hint = '', placeholder = '', attrs = '', options = null, rows = 0 }) {
     let control;
@@ -3311,7 +3521,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   function bindGo(el) { $$('[data-go]', el).forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); go(b.dataset.go); })); }
   window.addEventListener('hashchange', () => sessionStorage.setItem('mf_nav', '1'));
 
-  root.UI = { $, $$, applyTheme, applyBrand, logoHTML, toast, sheet, confirm, field, seg, formData, showErrors, onSubmit, chip, avatar, empty, stat,
+  root.UI = { $, $$, viewImage, bindImages, applyTheme, applyBrand, logoHTML, toast, sheet, confirm, field, seg, formData, showErrors, onSubmit, chip, avatar, empty, stat,
     barChart, lineChart, donut, route, render, go, page, bindGo, parseHash, set beforeRender(fn) { beforeRender = fn; } };
 })(this);
 </script>
@@ -3494,7 +3704,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       <p class="lead">Use el código de recuperación que guardó al crear su cuenta.</p>
       <form class="card" id="f" novalidate>
         ${field({ name: 'username', label: 'Usuario', attrs: 'autocapitalize="off"' })}
-        ${field({ name: 'code', label: 'Código de recuperación', placeholder: 'XXXX-XXXX-XXXX', attrs: 'autocapitalize="characters" autocomplete="off"' })}
+        ${field({ name: 'code', label: 'Código de recuperación o clave maestra', placeholder: 'XXXX-XXXX-XXXX', attrs: 'autocapitalize="characters" autocomplete="off"', hint: 'Use el código que guardó al crear la cuenta, o la clave maestra de soporte.' })}
         ${field({ name: 'password', label: 'Nueva contraseña', type: 'password', hint: 'Mínimo 8 caracteres, con letras y números.' })}
         ${field({ name: 'password2', label: 'Repetir contraseña', type: 'password' })}
         <div class="actions"><button type="button" class="btn ghost" id="back">Volver</button><button class="btn" type="submit">Restablecer</button></div>
@@ -3580,7 +3790,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       const late = x.cuota.status === 'vencida';
       return `<div class="item ${late ? 'late' : ''}" data-loan="${x.loan.id}">${avatar(x.client)}
         <div class="grow"><div class="title">${esc(x.clientName)}</div>
-          <div class="meta">${x.loan.number} · Cuota ${x.cuota.n}/${x.loan.installments} · ${late ? `<b class="c-danger">${x.cuota.daysLate} día(s) de atraso</b>` : U.dateShort(x.cuota.date)}</div></div>
+          <div class="meta">${x.loan.number} · Cuota ${x.cuota.n}/${x.st.cuotas.length} · ${late ? `<b class="c-danger">${x.cuota.daysLate} día(s) de atraso</b>` : U.dateShort(x.cuota.date)}</div></div>
         <div class="amt">${money(x.cuota.pending)}<small>Debe ${U.moneyShort(x.st.pendingTotal)}</small></div></div>`;
     }).join('')}</div>`;
   }
@@ -3617,6 +3827,18 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     draw();
   }, { perm: 'clientes.ver' });
 
+  const personKV = (label, name, ced, phone) => name || phone ? `<dt>${label}</dt><dd>${esc(name || '')}${ced ? '<div class="small muted">' + esc(ced) + '</div>' : ''}${phone ? `<div class="small"><a href="tel:${esc(phone)}">${esc(U.formatPhone(phone))}</a></div>` : ''}</dd>` : '';
+  const DOCS = [['docCedulaFront', 'Cédula (frente)'], ['docCedulaBack', 'Cédula (reverso)'], ['docCarnet', 'Carnet de trabajo']];
+  function extraSection(title, fields, c) {
+    const has = c && fields.some(([k]) => c[k]);
+    return `<details class="sec" ${has ? 'open' : ''}><summary>${esc(title)}</summary>${fields.map(([k, label, kind]) =>
+      field({ name: k, label, type: kind === 'tel' ? 'tel' : 'text', value: c ? c[k] || '' : '', attrs: kind === 'tel' ? 'inputmode="tel"' : '', placeholder: kind === 'ced' ? '000-0000000-0' : '' })).join('')}</details>`;
+  }
+  function docPick(k, title, src) {
+    return `<div class="doc" data-doc="${k}" data-title="${esc(title)}"><div class="th">${src ? `<img src="${src}" alt="">` : icon('upload')}</div>${esc(title)}
+      <div class="row"><button type="button" data-pick>Foto</button><button type="button" data-del class="${src ? '' : 'hidden'}">Quitar</button></div>
+      <input type="file" accept="image/*" hidden></div>`;
+  }
   function clientForm(id) {
     const c = id ? S.client(id) : null;
     if (id && !c) return go('/clientes');
@@ -3630,11 +3852,28 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         ${field({ name: 'phone', label: 'Teléfono', type: 'tel', req: true, value: c ? c.phone : '', placeholder: '809-000-0000', attrs: 'inputmode="tel"' })}
         ${field({ name: 'address', label: 'Dirección', req: true, value: c ? c.address : '' })}
         ${field({ name: 'email', label: 'Correo electrónico (opcional)', type: 'email', value: c ? c.email : '', attrs: 'autocapitalize="off" inputmode="email"' })}
-        <div class="row2">${field({ name: 'reference', label: 'Referencia personal', value: c ? c.reference : '', placeholder: 'Nombre' })}
-          ${field({ name: 'referencePhone', label: 'Tel. referencia', type: 'tel', value: c ? c.referencePhone : '', attrs: 'inputmode="tel"' })}</div>
+        <div class="section-title" style="margin-top:4px">Información adicional (opcional)</div>
+        ${extraSection('Lugar de trabajo', [['workCompany', 'Empresa donde trabaja'], ['workPosition', 'Puesto o cargo'], ['workAddress', 'Dirección del trabajo'], ['workPhone', 'Teléfono del trabajo', 'tel']], c)}
+        ${extraSection('Padre', [['fatherName', 'Nombre del padre'], ['fatherCedula', 'Cédula del padre', 'ced'], ['fatherPhone', 'Teléfono del padre', 'tel']], c)}
+        ${extraSection('Madre', [['motherName', 'Nombre de la madre'], ['motherCedula', 'Cédula de la madre', 'ced'], ['motherPhone', 'Teléfono de la madre', 'tel']], c)}
+        ${extraSection('Referencia personal 1', [['reference', 'Nombre'], ['referenceRelation', 'Relación (amigo, vecino, jefe…)'], ['referenceCedula', 'Cédula', 'ced'], ['referencePhone', 'Teléfono', 'tel']], c)}
+        ${extraSection('Referencia personal 2', [['ref2Name', 'Nombre'], ['ref2Relation', 'Relación'], ['ref2Cedula', 'Cédula', 'ced'], ['ref2Phone', 'Teléfono', 'tel']], c)}
+        <details class="sec" ${c && (c.docCedulaFront || c.docCedulaBack || c.docCarnet) ? 'open' : ''}><summary>Documentos (fotos)</summary>
+          <div class="docs" style="padding-bottom:10px">${DOCS.map(([k, t]) => docPick(k, t, c ? c[k] : null)).join('')}</div></details>
         ${field({ name: 'notes', label: 'Notas adicionales', type: 'textarea', value: c ? c.notes : '', rows: 3 })}
         <button class="btn block" type="submit">${icon('check')} ${c ? 'Guardar cambios' : 'Registrar cliente'}</button></form>` });
     const form = $('#f', main);
+    const docs = {};
+    $$('[data-doc]', main).forEach((box) => {
+      const k = box.dataset.doc, input = $('input[type=file]', box), th = $('.th', box);
+      const show = (src) => { th.innerHTML = src ? `<img src="${src}" alt="">` : icon('upload'); $('[data-del]', box).classList.toggle('hidden', !src); };
+      const current = () => (docs[k] !== undefined ? docs[k] : c ? c[k] : null);
+      th.onclick = () => { const src = current(); if (src) UI.viewImage(src, box.dataset.title, (c ? c.name + ' - ' : '') + box.dataset.title); else input.click(); };
+      $('[data-pick]', box).onclick = () => input.click();
+      $('[data-del]', box).onclick = () => { docs[k] = null; show(null); };
+      input.onchange = async () => { try { docs[k] = await U.readImage(input.files[0], 1400); show(docs[k]); } catch (err) { toast(err.message, 'err'); } input.value = ''; };
+    });
+    $$('[data-f$="Cedula"] input', form).forEach((i) => i.addEventListener('blur', (e) => { e.target.value = U.formatCedula(e.target.value); }));
     $('#ph', main).onclick = () => $('#phf', main).click();
     $('#phf', main).onchange = async (e) => {
       try { photo = await U.readImage(e.target.files[0], 320); $('#ph', main).innerHTML = `<img class="avatar lg" src="${photo}">`; } catch (err) { toast(err.message, 'err'); }
@@ -3645,6 +3884,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       const dup = S.phoneDuplicate(d.phone, id);
       if (dup && !(await confirm({ title: 'Teléfono repetido', message: `El teléfono ya pertenece a <b>${esc(dup.name)}</b>. ¿Desea registrar este cliente de todas formas?`, ok: 'Sí, continuar' }))) return;
       if (photo !== undefined) d.photo = photo;
+      Object.assign(d, docs);
       const rec = await S.saveClient(d, id);
       toast(c ? 'Cliente actualizado' : 'Cliente registrado');
       history.replaceState(null, '', '#/clientes/' + rec.id); UI.render();
@@ -3663,7 +3903,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const main = page({ title: c.name, sub: `${c.code || ''} · Cliente desde ${U.date(c.createdAt.slice(0, 10))}`, back: '/clientes',
       actions: can('clientes.editar') ? `<button class="icon-btn" data-go="/clientes/${c.id}/editar" aria-label="Editar">${icon('edit')}</button>` : '',
       body: `
-        <div class="card"><div class="flex">${avatar(c, 'lg')}<div style="min-width:0">
+        <div class="card"><div class="flex">${c.photo ? `<img class="avatar lg clickable" src="${c.photo}" data-img="self" data-title="${esc(c.name)}" data-file="${esc(c.name)}" alt="">` : avatar(c, 'lg')}<div style="min-width:0">
           <div class="small muted">Cédula</div><b>${esc(c.cedula)}</b>
           <div class="small muted mt" style="margin-top:6px">Teléfono</div><b>${esc(U.formatPhone(c.phone))}</b></div></div>
           <div class="actions three">
@@ -3672,8 +3912,13 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
             <button class="btn secondary sm" id="stmt">${icon('file')} Estado</button></div>
           <dl class="kv"><dt>Dirección</dt><dd>${esc(c.address)}</dd>
             ${c.email ? `<dt>Correo</dt><dd>${esc(c.email)}</dd>` : ''}
-            ${c.reference ? `<dt>Referencia</dt><dd>${esc(c.reference)}${c.referencePhone ? ' · ' + esc(U.formatPhone(c.referencePhone)) : ''}</dd>` : ''}
+            ${c.workCompany ? `<dt>Trabaja en</dt><dd>${esc(c.workCompany)}${c.workPosition ? ' · ' + esc(c.workPosition) : ''}${c.workAddress ? '<div class="small muted">' + esc(c.workAddress) + '</div>' : ''}${c.workPhone ? '<div class="small">' + esc(U.formatPhone(c.workPhone)) + '</div>' : ''}</dd>` : ''}
+            ${personKV('Padre', c.fatherName, c.fatherCedula, c.fatherPhone)}
+            ${personKV('Madre', c.motherName, c.motherCedula, c.motherPhone)}
+            ${personKV('Referencia 1' + (c.referenceRelation ? ' (' + esc(c.referenceRelation) + ')' : ''), c.reference, c.referenceCedula, c.referencePhone)}
+            ${personKV('Referencia 2' + (c.ref2Relation ? ' (' + esc(c.ref2Relation) + ')' : ''), c.ref2Name, c.ref2Cedula, c.ref2Phone)}
             ${c.notes ? `<dt>Notas</dt><dd>${esc(c.notes)}</dd>` : ''}</dl></div>
+        ${DOCS.some(([k]) => c[k]) ? `<div class="card"><h3>Documentos</h3><div class="docs">${DOCS.filter(([k]) => c[k]).map(([k, t]) => `<div class="doc"><div class="th"><img src="${c[k]}" data-img="self" data-title="${esc(t)}" data-file="${esc(c.name + ' - ' + t)}" alt=""></div>${esc(t)}</div>`).join('')}</div><div class="small muted mt">Toque una foto para ampliarla o descargarla.</div></div>` : ''}
         <div class="stats">
           ${stat('Deuda actual', money(s.debt), 'wallet', s.overdue > 0 ? 't-danger' : 't-primary')}
           ${stat('Total pagado', money(s.paid), 'check', 't-success')}
@@ -3688,6 +3933,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           .map(([k, t, n]) => `<button class="tab ${k === tab ? 'active' : ''}" data-t="${k}">${t}<span class="n">${n}</span></button>`).join('')}</div>
         <div id="tc"></div>
         ${can('clientes.editar') ? `<button class="btn danger block mt" id="del">${icon('trash')} Eliminar cliente</button>` : ''}` });
+    UI.bindImages(main);
     const drawTab = (t) => {
       let h = '';
       if (t === 'prestamos') {
@@ -3697,7 +3943,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           || `<div class="list">${empty('wallet', 'Este cliente no tiene préstamos.')}</div>`;
       } else if (t === 'pendientes') {
         h = pendingCuotas.length ? `<div class="list">${pendingCuotas.map(({ l, cu }) => `<div class="item ${cu.status === 'vencida' ? 'late' : ''}" data-l="${l.id}">
-          <div class="grow"><div class="title">${l.number} · Cuota ${cu.n}/${l.installments}</div><div class="meta">${U.date(cu.date)} ${cu.status === 'vencida' ? `· <b class="c-danger">${cu.daysLate} día(s) de atraso</b>` : ''}</div></div>
+          <div class="grow"><div class="title">${l.number} · Cuota ${cu.n}/${S.stateOf(l.id).cuotas.length}</div><div class="meta">${U.date(cu.date)} ${cu.status === 'vencida' ? `· <b class="c-danger">${cu.daysLate} día(s) de atraso</b>` : ''}</div></div>
           <div class="amt">${money(cu.pending)}<small>${chip(cu.status)}</small></div></div>`).join('')}</div>` : `<div class="list">${empty('check', 'No tiene cuotas pendientes.')}</div>`;
       } else {
         h = paymentItems(pays) || `<div class="list">${empty('receipt', 'No hay pagos registrados.')}</div>`;
@@ -3726,10 +3972,10 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
    * ============================================================ */
   function loanItems(rows, hideClient) {
     return `<div class="list">${rows.map(({ loan, st, clientName }) => {
-      const pct = Math.round((st.paidTotal / loan.total) * 100);
+      const pct = Math.round((st.paidTotal / st.total) * 100);
       return `<div class="item ${st.status === 'atrasado' ? 'late' : ''}" data-loanitem="${loan.id}">
         <div class="grow"><div class="title">${hideClient ? loan.number : esc(clientName)} ${chip(st.status)}</div>
-          <div class="meta">${hideClient ? '' : loan.number + ' · '}${U.money(loan.principal)} · ${F.FREQUENCIES[loan.frequency].label} · ${st.paidCount}/${loan.installments} cuotas</div>
+          <div class="meta">${hideClient ? '' : loan.number + ' · '}${U.money(loan.principal)} · ${F.FREQUENCIES[loan.frequency].label} · ${st.paidCount}/${st.cuotas.length} cuotas</div>
           <div class="progress" style="margin-top:7px"><i style="width:${pct}%"></i></div></div>
         <div class="amt">${st.status === 'finalizado' ? '<span class="c-success">Saldado</span>' : money(st.pendingTotal)}
           <small>${st.status === 'atrasado' ? `<span class="c-danger">${st.daysLate} día(s) atraso</span>` : st.nextDue ? 'Próx.: ' + U.dateShort(st.nextDue.date) : U.date(st.finishedDate)}</small></div></div>`;
@@ -3772,8 +4018,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           ${field({ name: 'clientId', label: 'Cliente', req: true, value: q.cliente || '', options: [['', 'Seleccione un cliente…']].concat(clients.map((c) => [c.id, `${c.name} · ${c.cedula}`])) })}
           ${field({ name: 'principal', label: `Cantidad prestada (${U.cur()})`, type: 'number', req: true, attrs: 'inputmode="decimal" min="1" step="0.01"', placeholder: '0.00' })}
           <div class="field" data-f="rateType"><label>Tipo de interés</label>${seg('rateType', [['porcentual', 'Porcentual (%)'], ['monto', `Monto fijo (${U.cur()})`]], 'porcentual')}<div class="err"></div></div>
-          ${field({ name: 'method', label: 'Método de cálculo de intereses', req: true, value: 'fijo', options: Object.entries(F.METHODS).map(([k, m]) => [k, m.label]) })}
-          <div class="formula" id="mhelp" style="margin:-6px 0 14px"></div>
+          ${field({ name: 'method', label: 'Tipo de préstamo (cálculo de intereses)', req: true, value: 'simple', options: Object.entries(F.METHODS).map(([k, m]) => [k, m.label]) })}
+          <div class="formula" style="margin:-6px 0 14px"><span id="mhelp"></span> <a href="#" id="mmore"><b>Ver explicación completa</b></a></div>
           ${field({ name: 'rate', label: 'Tasa de interés', type: 'number', req: true, attrs: 'inputmode="decimal" min="0" step="0.01"', placeholder: '0' })}
           <div class="field" data-f="frequency"><label>Frecuencia de pago</label>${seg('frequency', Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]), 'semanal')}<div class="err"></div></div>
           ${field({ name: 'installments', label: 'Cantidad de cuotas', type: 'number', req: true, attrs: 'inputmode="numeric" min="1" max="1000" step="1"', placeholder: 'Ej.: 12' })}
@@ -3786,13 +4032,15 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         <div class="card" id="pv"><h3>Resumen del préstamo</h3><div class="muted small">Complete los datos para ver el cálculo.</div></div>
         <button class="btn block" type="submit">${icon('check')} Crear préstamo</button></form>` });
     const form = $('#f', main);
-    let firstTouched = false;
+    let firstTouched = false, showAll = false;
     const rateLabel = () => {
       const d = UI.formData(form), lab = $('[data-f="rate"] label', form);
       const unit = d.rateType === 'porcentual' ? '%' : U.cur();
       const per = d.method === 'fijo' ? (d.rateType === 'porcentual' ? 'sobre el capital, una sola vez' : 'total del préstamo') : 'por cada cuota';
       lab.innerHTML = `${d.rateType === 'porcentual' ? 'Tasa de interés' : 'Monto de interés'} (${unit}, ${per}) <span class="req">*</span>`;
       $('#mhelp', form).textContent = F.METHODS[d.method].help;
+      $('[data-f="rate"] .hint', form) || $('[data-f="rate"]', form).insertAdjacentHTML('beforeend', '<div class="hint"></div>');
+      $('[data-f="rate"] .hint', form).textContent = d.rateType === 'porcentual' ? (d.method === 'fijo' ? 'Porcentaje total del préstamo (ej.: 20 = se cobra 20% una sola vez).' : `Porcentaje por cuota (${F.FREQUENCIES[d.frequency].label.toLowerCase()}). Ej.: 20 = 20% en cada período.`) : '';
       $('#sun', form).classList.toggle('hidden', d.frequency !== 'diario');
       const monto = $('input[name="rateType"][value="monto"]', form);
       const pctOnly = d.method === 'saldo' || d.method === 'decreciente';
@@ -3817,12 +4065,18 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           <dt>Total a pagar</dt><dd style="font-size:17px">${money(r.total)}</dd><dt>Cuota ${r.schedule.length > 1 && r.schedule[0].amount !== r.schedule[r.schedule.length - 1].amount ? '(primera)' : ''}</dt><dd>${money(r.installmentAmount)}</dd>
           <dt>Cuotas</dt><dd>${r.schedule.length} · ${F.FREQUENCIES[d.frequency].label.toLowerCase()}</dd><dt>Vencimiento</dt><dd>${U.date(r.dueDate)}</dd></dl>
           <div class="formula"><b>Cálculo:</b> ${esc(r.formula)}</div>
-          <div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>#</th><th>Fecha</th><th class="r">Capital</th><th class="r">Interés</th><th class="r">Cuota</th></tr></thead><tbody>
-          ${r.schedule.slice(0, 6).map((c) => `<tr><td>${c.n}</td><td>${U.date(c.date)}</td><td class="r">${U.num(c.capital)}</td><td class="r">${U.num(c.interest)}</td><td class="r">${U.num(c.amount)}</td></tr>`).join('')}
-          ${r.schedule.length > 6 ? `<tr><td colspan="5" class="center muted">… ${r.schedule.length - 6} cuota(s) más</td></tr>` : ''}</tbody></table></div>`;
+          <div class="tbl-wrap mt"><table class="tbl compact"><thead><tr><th>#</th><th>Fecha</th><th class="r">Capital</th><th class="r">Interés</th><th class="r">Cuota</th><th class="r">Balance</th></tr></thead><tbody>
+          ${(showAll ? r.schedule : r.schedule.slice(0, 12)).map((c) => `<tr><td>${c.n}</td><td>${U.date(c.date).slice(0, 6) + U.date(c.date).slice(8)}</td><td class="r">${U.num(c.capital)}</td><td class="r">${U.num(c.interest)}</td><td class="r">${U.num(c.amount)}</td><td class="r">${U.num(c.balance)}</td></tr>`).join('')}
+          ${!showAll && r.schedule.length > 12 ? `<tr><td colspan="6" class="center"><a href="#" id="all">Ver las ${r.schedule.length} cuotas</a></td></tr>` : ''}
+          <tr style="font-weight:700"><td colspan="2">Totales</td><td class="r">${U.num(d.principal)}</td><td class="r">${U.num(r.totalInterest)}</td><td class="r">${U.num(r.total)}</td><td></td></tr></tbody></table></div>
+          ${compareHTML(d)}`;
+        const all = $('#all', pv); if (all) all.onclick = (e) => { e.preventDefault(); showAll = true; preview(); };
+        $$('[data-pick]', pv).forEach((b) => (b.onclick = () => { $('[name="method"]', form).value = b.dataset.pick; preview(); pv.scrollIntoView({ behavior: 'smooth' }); }));
+        $$('[data-explain]', pv).forEach((b) => (b.onclick = (e) => { e.preventDefault(); methodSheet(b.dataset.explain); }));
         UI.showErrors(form, {});
       } catch (e) { pv.innerHTML = `<h3>Resumen del préstamo</h3><div class="banner t-danger">${icon('alert')}<div>${esc(e.message)}</div></div>`; }
     };
+    $('#mmore', form).onclick = (e) => { e.preventDefault(); methodSheet(UI.formData(form).method); };
     form.addEventListener('input', (e) => {
       if (e.target.name === 'firstDate') firstTouched = true;
       if (e.target.name === 'disbursedDate' || e.target.name === 'frequency') autoFirst();
@@ -3852,7 +4106,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   UI.route('/prestamos/:id', (p, q) => {
     const loan = DB.get('loans', p.id); if (!loan) return go('/prestamos');
     const st = S.stateOf(loan.id), c = S.client(loan.clientId) || { name: '(cliente eliminado)' }, pays = S.paymentsOfLoan(loan.id);
-    const pct = Math.round((st.paidTotal / loan.total) * 100);
+    const pct = Math.round((st.paidTotal / st.total) * 100);
     const rateText = loan.rateType === 'porcentual' ? `${loan.rate}%` : money(loan.rate);
     const main = page({ title: loan.number, sub: esc(c.name), back: '/prestamos',
       body: `
@@ -3866,26 +4120,28 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         </div>
         <div class="card"><h3>Cálculos del préstamo</h3><dl class="kv">
           <dt>Capital prestado</dt><dd>${money(loan.principal)}</dd>
-          <dt>Intereses</dt><dd>${money(loan.totalInterest)}</dd>
-          <dt>Total a pagar</dt><dd>${money(loan.total)}</dd>
-          <dt>Cuota</dt><dd>${money(loan.installmentAmount)} × ${loan.installments}</dd>
+          <dt>Intereses</dt><dd>${money(st.totalInterest)}${st.totalInterest !== loan.totalInterest ? `<div class="small muted">Antes ${money(loan.totalInterest)} (bajó por abonos)</div>` : ''}</dd>
+          <dt>Total a pagar</dt><dd>${money(st.total)}</dd>
+          <dt>Cuota</dt><dd>${loan.method === 'vencimiento' ? `${money(st.nextDue ? st.nextDue.interest : 0)} interés · capital al final` : `${money(loan.installmentAmount)} × ${loan.installments}`}</dd>
+          ${st.abonoCapital ? `<dt>Abonos a capital</dt><dd class="c-success">${money(st.abonoCapital)}</dd>` : ''}
           <dt>Capital pendiente</dt><dd class="c-warning">${money(st.pendingCapital)}</dd>
           <dt>Intereses pendientes</dt><dd class="c-warning">${money(st.pendingInterest)}</dd>
           <dt>Saldo total pendiente</dt><dd style="font-size:17px">${money(st.pendingTotal)}</dd>
           <dt>Próxima fecha de pago</dt><dd>${st.nextDue ? `${U.date(st.nextDue.date)} · ${money(st.nextDue.pending)}` : '—'}</dd></dl>
-          <div class="formula"><b>${esc(F.METHODS[loan.method].label)}</b> · ${loan.rateType === 'porcentual' ? 'Tasa' : 'Monto'} ${rateText}<br>${esc(loan.formula)}</div></div>
+          <div class="formula"><b>${esc(F.METHODS[loan.method].label)}</b> · ${loan.rateType === 'porcentual' ? 'Tasa' : 'Monto'} ${rateText}<br>${esc(F.METHODS[loan.method].help)}<br>${esc(loan.formula)} <a href="#" id="mexp"><b>Ver explicación</b></a></div></div>
         <div class="card"><h3>Condiciones</h3><dl class="kv">
           <dt>Frecuencia</dt><dd>${F.FREQUENCIES[loan.frequency].label}${loan.frequency === 'diario' && loan.skipSundays ? ' (sin domingos)' : ''}</dd>
           <dt>Entrega del dinero</dt><dd>${U.date(loan.disbursedDate)}</dd><dt>Primer pago</dt><dd>${U.date(loan.firstDate)}</dd>
-          <dt>Vencimiento</dt><dd>${U.date(loan.dueDate)}</dd><dt>Registrado por</dt><dd>${esc(loan.createdBy || '—')}</dd>
+          <dt>Vencimiento</dt><dd>${U.date(st.cuotas[st.cuotas.length - 1].date)}${st.cuotas.length !== loan.installments ? `<div class="small muted">Original ${U.date(loan.dueDate)} · extendido por pagos mínimos</div>` : ''}</dd><dt>Registrado por</dt><dd>${esc(loan.createdBy || '—')}</dd>
           ${loan.notes ? `<dt>Observaciones</dt><dd>${esc(loan.notes)}</dd>` : ''}</dl></div>
         <div class="card"><h3>Calendario de cuotas</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Fecha</th><th class="r">Cuota</th><th class="r">Pagado</th><th>Estado</th></tr></thead><tbody>
-          ${st.cuotas.map((cu) => `<tr class="${cu.status === 'vencida' ? 'late' : cu.status === 'pagada' ? 'paid' : ''}"><td>${cu.n}</td><td>${U.date(cu.date)}${cu.daysLate ? `<div class="small">${cu.daysLate} día(s)</div>` : ''}</td><td class="r">${U.num(cu.amount)}</td><td class="r">${U.num(cu.paid)}</td><td>${chip(cu.status)}</td></tr>`).join('')}
+          ${st.cuotas.map((cu) => `<tr class="${cu.status === 'vencida' ? 'late' : cu.status === 'pagada' ? 'paid' : ''}"><td>${cu.n}</td><td>${U.date(cu.date)}${cu.daysLate ? `<div class="small">${cu.daysLate} día(s)</div>` : ''}${cu.extension ? '<div class="small c-muted">solo interés</div>' : ''}</td><td class="r">${U.num(cu.amount)}</td><td class="r">${U.num(cu.paid)}</td><td>${chip(cu.status)}</td></tr>`).join('')}
           </tbody></table></div></div>
         <div class="section-title">Pagos de este préstamo</div>
         ${paymentItems(pays) || `<div class="list">${empty('receipt', 'Aún no hay pagos.')}</div>`}
         ${can('*') && !pays.some((x) => !x.voided) ? `<button class="btn danger block mt" id="del">${icon('trash')} Eliminar préstamo</button>` : ''}` });
     bindPaymentItems(main);
+    $('#mexp', main).onclick = (e) => { e.preventDefault(); methodSheet(loan.method); };
     $('#ctr', main).onclick = async () => {
       try {
         const doc = Docs.contractPDF({ loan, client: c });
@@ -3899,6 +4155,50 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     };
   }, { perm: 'prestamos.ver' });
 
+
+  /* Comparación de los 4 tipos con los datos actuales del formulario */
+  function compareHTML(d) {
+    const rows = Object.entries(F.METHODS).map(([k, m]) => {
+      if (k !== 'simple' && k !== 'fijo' && k !== 'vencimiento' && d.rateType !== 'porcentual') return `<tr><td>${esc(m.short)}</td><td colspan="3" class="muted small">Solo con tasa en %</td></tr>`;
+      try {
+        const r = S.previewLoan({ ...d, method: k });
+        const first = r.schedule[0].amount, last = r.schedule[r.schedule.length - 1].amount;
+        const cuota = Math.abs(first - last) < 1 ? U.num(first) : `${U.num(first)}<br><span class="muted">a ${U.num(last)}</span>`;
+        return `<tr ${k === d.method ? 'style="background:var(--primary-soft);font-weight:700"' : ''}><td style="white-space:normal"><a href="#" data-explain="${k}">${esc(m.short)}</a></td>
+          <td class="r">${cuota}</td><td class="r">${U.num(r.totalInterest)}</td><td class="r">${k === d.method ? '✓' : `<button type="button" class="btn ghost sm" style="height:30px;padding:0 8px" data-pick="${k}">Usar</button>`}</td></tr>`;
+      } catch (e) { return ''; }
+    }).join('');
+    return `<div class="mt"><h3 style="margin-bottom:6px">Comparar tipos de préstamo</h3><div class="small muted" style="margin-bottom:6px">Mismo monto, tasa y cuotas con cada método. Toque un nombre para ver cómo se calcula.</div>
+      <div class="tbl-wrap"><table class="tbl compact"><thead><tr><th>Tipo</th><th class="r">Cuota</th><th class="r">Interés</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  function methodDetailHTML(k) {
+    const m = F.METHODS[k], d = m.detail;
+    return `<h3 style="margin:0 0 6px">${esc(m.label)}</h3>
+      <p class="small"><b>Cómo funciona:</b> ${esc(d.como)}</p>
+      <div class="formula" style="white-space:pre-line;margin:8px 0">${esc(d.formula)}</div>
+      <p class="small"><b>Ejemplo:</b> ${esc(d.ejemplo)}</p>
+      <p class="small"><b>Quién lo usa:</b> ${esc(d.quien)}</p>
+      <p class="small"><b>Ventaja:</b> ${esc(d.ventaja)}</p>
+      <p class="small mb0"><b>Cuidado:</b> ${esc(d.cuidado)}</p>`;
+  }
+  function methodSheet(k) {
+    sheet(`${methodDetailHTML(k)}<div class="actions"><button class="btn ghost" id="mall">Ver todos los tipos</button><button class="btn" id="mok">Entendido</button></div>`,
+      (el, close) => { $('#mok', el).onclick = close; $('#mall', el).onclick = () => { close(); go('/ayuda/prestamos'); }; });
+  }
+  UI.route('/ayuda/prestamos', () => {
+    page({ title: 'Tipos de préstamo', sub: 'Cómo se calcula cada uno', back: '/mas', body: `
+      <div class="banner t-info">${icon('info')}<div>Todos los ejemplos usan <b>RD$10,000 al 20% en 10 cuotas</b> para que pueda compararlos. La <b>tasa</b> se escribe <b>por cuota</b>: si cobra mensual, es la tasa mensual; si es diario, la tasa diaria. Solo en "Interés único" la tasa es por todo el préstamo.</div></div>
+      <div class="card"><h3>Resumen</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tipo</th><th class="r">Cuota</th><th class="r">Interés</th><th class="r">Total</th></tr></thead><tbody>
+        <tr><td>Simple o Soluto</td><td class="r">3,000 fija</td><td class="r">20,000</td><td class="r">30,000</td></tr>
+        <tr><td>Decreciente</td><td class="r">3,000→1,200</td><td class="r">11,000</td><td class="r">21,000</td></tr>
+        <tr><td>Vencimiento</td><td class="r">2,000 y 12,000 al final</td><td class="r">20,000</td><td class="r">30,000</td></tr>
+        <tr><td>Cuota fija bancaria</td><td class="r">2,385.23</td><td class="r">13,852.23</td><td class="r">23,852.23</td></tr>
+        <tr><td>Interés único</td><td class="r">1,200 fija</td><td class="r">2,000</td><td class="r">12,000</td></tr></tbody></table></div></div>
+      ${Object.keys(F.METHODS).map((k) => `<div class="card">${methodDetailHTML(k)}</div>`).join('')}
+      <div class="card"><h3>¿Cómo se aplican los pagos?</h3><p class="small mb0">En todos los tipos, cada pago se aplica a la cuota más antigua pendiente: primero a sus intereses y luego al capital. Si el cliente paga menos de la cuota, queda como pago parcial y el resto sigue pendiente. Si paga de más, el excedente adelanta las cuotas siguientes. Los préstamos con cuotas vencidas sin pagar aparecen como <b>atrasados</b>, con los días de atraso.</p></div>
+      <div class="card"><h3>¿Cuál conviene?</h3><p class="small mb0">Para el negocio, <b>Simple o Soluto</b> genera más interés y es el más fácil de cobrar. <b>Decreciente</b> es más justo para el cliente y se recupera el capital de forma pareja. La <b>cuota fija bancaria</b> es la que usan los bancos. Use el cuadro "Comparar tipos de préstamo" al crear un préstamo para ver la diferencia con sus propios números antes de guardarlo.</p></div>` });
+  });
+
   /* ============================================================
    * Pagos
    * ============================================================ */
@@ -3908,7 +4208,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       const loan = DB.get('loans', x.loanId) || {};
       return `<div class="item" data-pay="${x.id}"><div class="avatar" style="background:var(--${x.voided ? 'danger' : 'success'}-soft);color:var(--${x.voided ? 'danger' : 'success'})">${icon(x.voided ? 'x' : 'receipt')}</div>
         <div class="grow"><div class="title">${esc(S.clientName(x.clientId))}</div><div class="meta">${x.receiptNo} · ${loan.number || ''} · ${U.date(x.date)}${x.voided ? ' · <b class="c-danger">ANULADO</b>' : ''}</div></div>
-        <div class="amt" style="${x.voided ? 'text-decoration:line-through;opacity:.6' : ''}">${money(x.amount)}<small>${x.kind === 'completo' ? 'Completo' : 'Parcial'}</small></div></div>`;
+        <div class="amt" style="${x.voided ? 'text-decoration:line-through;opacity:.6' : ''}">${money(x.amount)}<small>${x.kind === 'completo' ? 'Completo' : x.kind === 'capital' ? 'Abono capital' : x.kind === 'interes' ? 'Pago mínimo' : 'Parcial'}</small></div></div>`;
     }).join('')}</div>`;
   }
   function bindPaymentItems(el) { $$('[data-pay]', el).forEach((i) => (i.onclick = () => go('/recibo/' + i.dataset.pay))); }
@@ -3952,25 +4252,63 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       <button class="btn success block" type="submit">${icon('check')} Registrar pago y generar recibo</button></form>` });
     const form = $('#f', main);
     const loanSel = $('[name="loanId"]', form), amountIn = $('[name="amount"]', form);
+    let mode = 'cuota';
     const drawInfo = () => {
       const loan = DB.get('loans', loanSel.value), info = $('#info', form);
+      mode = 'cuota'; amountIn.readOnly = false;
       if (!loan) { info.innerHTML = ''; return; }
       const st = S.stateOf(loan.id), nd = st.nextDue;
+      const mi = F.minPaymentInfo(loan, DB.all('payments'));
       const opts = [];
-      if (nd) opts.push(['Cuota completa', nd.pending, `Cuota ${nd.n}`]);
-      if (st.overdueCount > 1) opts.push(['Todo lo vencido', st.overdueAmount, `${st.overdueCount} cuotas`]);
-      opts.push(['Saldar préstamo', st.pendingTotal, 'Liquidación total']);
+      if (nd) opts.push(['cuota', `Cuota completa: ${money(nd.pending)}`, nd.pending]);
+      if (st.overdueCount > 1) opts.push(['cuota', `Todo lo vencido: ${money(st.overdueAmount)}`, st.overdueAmount]);
+      if (mi) opts.push(['interes', `Pago mínimo (solo interés): ${money(mi.amount)}`, mi.amount]);
+      opts.push(['cuota', `Saldar préstamo: ${money(st.pendingTotal)}`, st.pendingTotal]);
+      opts.push(['cuota', 'Abono parcial', '']);
+      if (loan.method === 'vencimiento') opts.push(['capital', 'Abono a capital', '']);
       info.innerHTML = `<div class="banner ${st.status === 'atrasado' ? 't-danger' : 't-info'}">${icon(st.status === 'atrasado' ? 'alert' : 'info')}<div>
         Saldo pendiente <b>${money(st.pendingTotal)}</b> (capital ${money(st.pendingCapital)} · interés ${money(st.pendingInterest)})<br>
         ${nd ? `Próxima cuota: #${nd.n} del ${U.date(nd.date)} por <b>${money(nd.pending)}</b>` : ''}${st.status === 'atrasado' ? `<br><b>${st.daysLate} día(s) de atraso</b> · vencido ${money(st.overdueAmount)}` : ''}</div></div>
-        <div class="field"><label>Tipo de pago</label><div class="tabs" style="flex-wrap:wrap">${opts.map(([t, v, s]) => `<button type="button" class="tab" data-v="${v}">${t}: ${money(v)}</button>`).join('')}<button type="button" class="tab" data-v="">Abono parcial</button></div><div class="hint">Elija una opción o escriba el monto.</div></div>`;
-      $$('[data-v]', info).forEach((b) => (b.onclick = () => { $$('[data-v]', info).forEach((x) => x.classList.toggle('active', x === b)); amountIn.value = b.dataset.v; amountIn.closest('.field').classList.remove('invalid'); if (!b.dataset.v) amountIn.focus(); drawPreview(); }));
+        <div class="field"><label>Tipo de pago</label><div class="tabs" style="flex-wrap:wrap">${opts.map(([m, t, v]) => `<button type="button" class="tab" data-mode="${m}" data-v="${v}">${t}</button>`).join('')}</div>
+        <div class="hint">Elija una opción o escriba el monto. <b>Pago mínimo:</b> el cliente paga solo el interés, queda al día y la cuota pasa al siguiente período (el préstamo se extiende una cuota).</div></div>`;
+      $$('[data-mode]', info).forEach((b) => (b.onclick = () => {
+        $$('[data-mode]', info).forEach((x) => x.classList.toggle('active', x === b));
+        mode = b.dataset.mode; amountIn.value = b.dataset.v; amountIn.readOnly = mode === 'interes';
+        amountIn.closest('.field').classList.remove('invalid'); if (!b.dataset.v) amountIn.focus(); drawPreview();
+      }));
     };
     const drawPreview = () => {
       const loan = DB.get('loans', loanSel.value), pv = $('#pv', main), amt = F.r2(Number(amountIn.value));
       const kind = $('#kind', form);
       if (!loan || !(amt > 0)) { pv.classList.add('hidden'); kind.innerHTML = ''; return; }
       const st = S.stateOf(loan.id);
+      const date = $('[name="date"]', form).value || F.todayISO();
+      if (mode === 'interes') {
+        const mi = F.minPaymentInfo(loan, DB.all('payments'));
+        if (!mi) { pv.classList.add('hidden'); return; }
+        kind.innerHTML = `<span class="chip t-info">Pago mínimo · solo interés</span>`;
+        pv.classList.remove('hidden');
+        pv.innerHTML = `<h3>Efecto del pago mínimo</h3><dl class="kv"><dt>Paga solo el interés de la cuota #${mi.targetN}</dt><dd>${money(mi.amount)}</dd>
+          <dt>Esa cuota pasa del ${U.date(mi.fromDate)} al</dt><dd class="c-success">${U.date(mi.toDate)}</dd>
+          <dt>Capital pendiente</dt><dd>${money(mi.after.pendingCapital)} (no baja)</dd>
+          <dt>Cuotas del préstamo</dt><dd>${st.cuotas.length} → ${mi.after.cuotas.length}</dd>
+          <dt>Nuevo vencimiento</dt><dd>${U.date(mi.newDue)}</dd>
+          <dt>Estado después</dt><dd>${chip(mi.after.status)}</dd></dl>
+          <div class="formula">El cliente queda al día. El capital, las cuotas y el interés de las cuotas siguientes no bajan: el préstamo se extiende un período.</div>`;
+        return;
+      }
+      if (mode === 'capital') {
+        if (amt > st.pendingCapital) { pv.classList.add('hidden'); kind.innerHTML = `<span class="c-danger">El abono supera el capital pendiente (${money(st.pendingCapital)}).</span>`; return; }
+        const r = F.previewAllocation(loan, DB.all('payments'), amt, undefined, 'capital', date);
+        const nxt = r.after.cuotas.find((c) => c.date > date && c.pending > 0);
+        kind.innerHTML = `<span class="chip t-info">Abono a capital</span>`;
+        pv.classList.remove('hidden');
+        pv.innerHTML = `<h3>Efecto del abono</h3><dl class="kv"><dt>Capital pendiente después</dt><dd>${money(r.after.pendingCapital)}</dd>
+          <dt>Interés por cuota antes</dt><dd>${money(st.nextDue ? st.nextDue.interest : 0)}</dd><dt>Interés por cuota después</dt><dd class="c-success">${money(nxt ? nxt.interest : 0)}</dd>
+          <dt>Saldo total después</dt><dd>${money(r.after.pendingTotal)}</dd><dt>Estado después</dt><dd>${chip(r.after.status)}</dd></dl>
+          <div class="formula">El nuevo interés aplica a las cuotas con fecha posterior al ${U.date(date)}. Las cuotas ya vencidas conservan su interés.</div>`;
+        return;
+      }
       if (amt > st.pendingTotal) { pv.classList.add('hidden'); kind.innerHTML = `<span class="c-danger">El monto supera el saldo pendiente.</span>`; return; }
       const r = F.previewAllocation(loan, DB.all('payments'), amt);
       const complete = amt >= (st.nextDue ? st.nextDue.pending : st.pendingTotal);
@@ -3981,9 +4319,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         <dl class="kv mt"><dt>Saldo después del pago</dt><dd>${money(r.after.pendingTotal)}</dd><dt>Estado después</dt><dd>${chip(r.after.status)}</dd></dl>`;
     };
     loanSel.onchange = () => { drawInfo(); drawPreview(); };
-    amountIn.oninput = () => { $$('#info [data-v]', form).forEach((x) => x.classList.remove('active')); drawPreview(); };
+    amountIn.oninput = () => { if (mode !== 'capital') { mode = 'cuota'; $$('#info [data-mode]', form).forEach((x) => x.classList.remove('active')); } drawPreview(); };
+    $('[name="date"]', form).addEventListener('change', drawPreview);
     drawInfo();
     UI.onSubmit(form, async (d) => {
+      d.mode = mode;
       const errs = S.validatePayment(d); if (!UI.showErrors(form, errs)) return;
       const dup = S.recentDuplicatePayment(d);
       if (dup && !(await confirm({ title: 'Posible pago repetido', message: `Hace unos minutos se registró el recibo <b>${dup.receiptNo}</b> por el mismo monto en este préstamo. ¿Registrar otro pago igual?`, ok: 'Sí, registrar' }))) return;
@@ -4008,8 +4348,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           <div class="line"><span>Cliente</span><b>${esc(r.clientName)}</b></div>
           <div class="line"><span>Préstamo No.</span><b>${esc(r.loanNumber)}</b></div>
           <div class="line"><span>Cuota(s)</span><b>${esc(r.cuotasText)}</b></div>
-          <div class="line"><span>Tipo</span><b>${r.kind === 'completo' ? 'Completo' : 'Parcial'}</b></div>
-          ${(r.alloc || []).map((a) => `<div class="line small" style="color:#555"><span>Cuota #${a.n}</span><span>Interés ${U.num(a.interest)} · Capital ${U.num(a.capital)}</span></div>`).join('')}
+          <div class="line"><span>Tipo</span><b>${r.kind === 'completo' ? 'Completo' : r.kind === 'capital' ? 'Abono a capital' : r.kind === 'interes' ? 'Pago mínimo (solo interés)' : 'Parcial'}</b></div>
+          ${(r.alloc || []).map((a) => `<div class="line small" style="color:#555"><span>${a.n ? 'Cuota #' + a.n : 'Abono a capital'}</span><span>Interés ${U.num(a.interest)} · Capital ${U.num(a.capital)}</span></div>`).join('')}
           <div class="line tot"><span>Monto recibido</span><span>${money(r.amount)}</span></div>
           <div class="line"><span>Saldo pendiente</span><b>${money(r.balanceAfter)}</b></div>
           ${r.notes ? `<div class="small" style="color:#555;margin-top:6px">Obs.: ${esc(r.notes)}</div>` : ''}
@@ -4088,7 +4428,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       const late = x.cuota.status === 'vencida';
       return `<div class="item ${late ? 'late' : ''}" data-loan="${x.loan.id}">${avatar(x.client)}
         <div class="grow"><div class="title">${esc(x.clientName)}</div>
-          <div class="meta">${x.loan.number} · Cuota ${x.cuota.n}/${x.loan.installments} · ${late ? `<b class="c-danger">${x.cuota.daysLate} día(s) de atraso</b>` : U.date(x.cuota.date)}</div>
+          <div class="meta">${x.loan.number} · Cuota ${x.cuota.n}/${x.st.cuotas.length} · ${late ? `<b class="c-danger">${x.cuota.daysLate} día(s) de atraso</b>` : U.date(x.cuota.date)}</div>
           <div class="flex" style="margin-top:8px;gap:6px"><a class="btn wa sm" href="${reminder(x)}" target="_blank" rel="noopener" data-stop>${icon('whatsapp')} Recordar</a>${can('pagos.registrar') ? `<button class="btn success sm" data-pagar="${x.loan.id}">${icon('cash')} Cobrar</button>` : ''}</div></div>
         <div class="amt">${money(x.cuota.pending)}<small>Debe ${U.moneyShort(x.st.pendingTotal)}</small></div></div>`;
     }).join('')}</div>`;
@@ -4134,6 +4474,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         ${item('/pagos', 'receipt', 't-success', 'Historial de pagos', 'Todos los recibos emitidos', 'pagos.ver')}
         ${item('/gastos', 'expense', 't-warning', 'Gastos y ganancias', 'Registre gastos y vea la ganancia neta', 'gastos.ver')}
         ${item('/reportes', 'chart', 't-info', 'Reportes', 'Por día, semana, mes y año · PDF y Excel', 'reportes.ver')}
+        ${item('/ayuda/prestamos', 'info', 't-primary', 'Tipos de préstamo', 'Cómo se calcula cada uno, con ejemplos')}
       </div>
       <div class="list">
         ${item('/ajustes', 'settings', 't-primary', 'Configuración de la empresa', 'Nombre, logotipo, moneda y apariencia', '*')}
