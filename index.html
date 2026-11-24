@@ -1427,6 +1427,212 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 })({}, capacitorExports);
 //# sourceMappingURL=plugin.js.map
 </script>
+<script>var capacitorLocalNotifications = (function (exports, core) {
+    'use strict';
+
+    /// <reference types="@capacitor/cli" />
+    /**
+     * Day of the week. Used for scheduling notifications on a particular weekday.
+     */
+    exports.Weekday = void 0;
+    (function (Weekday) {
+        Weekday[Weekday["Sunday"] = 1] = "Sunday";
+        Weekday[Weekday["Monday"] = 2] = "Monday";
+        Weekday[Weekday["Tuesday"] = 3] = "Tuesday";
+        Weekday[Weekday["Wednesday"] = 4] = "Wednesday";
+        Weekday[Weekday["Thursday"] = 5] = "Thursday";
+        Weekday[Weekday["Friday"] = 6] = "Friday";
+        Weekday[Weekday["Saturday"] = 7] = "Saturday";
+    })(exports.Weekday || (exports.Weekday = {}));
+
+    const LocalNotifications = core.registerPlugin('LocalNotifications', {
+        web: () => Promise.resolve().then(function () { return web; }).then(m => new m.LocalNotificationsWeb()),
+    });
+
+    class LocalNotificationsWeb extends core.WebPlugin {
+        constructor() {
+            super(...arguments);
+            this.pending = [];
+            this.deliveredNotifications = [];
+            this.hasNotificationSupport = () => {
+                if (!('Notification' in window) || !Notification.requestPermission) {
+                    return false;
+                }
+                if (Notification.permission !== 'granted') {
+                    // don't test for `new Notification` if permission has already been granted
+                    // otherwise this sends a real notification on supported browsers
+                    try {
+                        new Notification('');
+                    }
+                    catch (e) {
+                        if (e.name == 'TypeError') {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            };
+        }
+        async getDeliveredNotifications() {
+            const deliveredSchemas = [];
+            for (const notification of this.deliveredNotifications) {
+                const deliveredSchema = {
+                    title: notification.title,
+                    id: parseInt(notification.tag),
+                    body: notification.body,
+                };
+                deliveredSchemas.push(deliveredSchema);
+            }
+            return {
+                notifications: deliveredSchemas,
+            };
+        }
+        async removeDeliveredNotifications(delivered) {
+            for (const toRemove of delivered.notifications) {
+                const found = this.deliveredNotifications.find(n => n.tag === String(toRemove.id));
+                found === null || found === void 0 ? void 0 : found.close();
+                this.deliveredNotifications = this.deliveredNotifications.filter(() => !found);
+            }
+        }
+        async removeAllDeliveredNotifications() {
+            for (const notification of this.deliveredNotifications) {
+                notification.close();
+            }
+            this.deliveredNotifications = [];
+        }
+        async createChannel() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async deleteChannel() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async listChannels() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async schedule(options) {
+            if (!this.hasNotificationSupport()) {
+                throw this.unavailable('Notifications not supported in this browser.');
+            }
+            for (const notification of options.notifications) {
+                this.sendNotification(notification);
+            }
+            return {
+                notifications: options.notifications.map(notification => ({
+                    id: notification.id,
+                })),
+            };
+        }
+        async getPending() {
+            return {
+                notifications: this.pending,
+            };
+        }
+        async registerActionTypes() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async cancel(pending) {
+            this.pending = this.pending.filter(notification => !pending.notifications.find(n => n.id === notification.id));
+        }
+        async areEnabled() {
+            const { display } = await this.checkPermissions();
+            return {
+                value: display === 'granted',
+            };
+        }
+        async changeExactNotificationSetting() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async checkExactNotificationSetting() {
+            throw this.unimplemented('Not implemented on web.');
+        }
+        async requestPermissions() {
+            if (!this.hasNotificationSupport()) {
+                throw this.unavailable('Notifications not supported in this browser.');
+            }
+            const display = this.transformNotificationPermission(await Notification.requestPermission());
+            return { display };
+        }
+        async checkPermissions() {
+            if (!this.hasNotificationSupport()) {
+                throw this.unavailable('Notifications not supported in this browser.');
+            }
+            const display = this.transformNotificationPermission(Notification.permission);
+            return { display };
+        }
+        transformNotificationPermission(permission) {
+            switch (permission) {
+                case 'granted':
+                    return 'granted';
+                case 'denied':
+                    return 'denied';
+                default:
+                    return 'prompt';
+            }
+        }
+        sendPending() {
+            var _a;
+            const toRemove = [];
+            const now = new Date().getTime();
+            for (const notification of this.pending) {
+                if (((_a = notification.schedule) === null || _a === void 0 ? void 0 : _a.at) &&
+                    notification.schedule.at.getTime() <= now) {
+                    this.buildNotification(notification);
+                    toRemove.push(notification);
+                }
+            }
+            this.pending = this.pending.filter(notification => !toRemove.find(n => n === notification));
+        }
+        sendNotification(notification) {
+            var _a;
+            if ((_a = notification.schedule) === null || _a === void 0 ? void 0 : _a.at) {
+                const diff = notification.schedule.at.getTime() - new Date().getTime();
+                this.pending.push(notification);
+                setTimeout(() => {
+                    this.sendPending();
+                }, diff);
+                return;
+            }
+            this.buildNotification(notification);
+        }
+        buildNotification(notification) {
+            const localNotification = new Notification(notification.title, {
+                body: notification.body,
+                tag: String(notification.id),
+            });
+            localNotification.addEventListener('click', this.onClick.bind(this, notification), false);
+            localNotification.addEventListener('show', this.onShow.bind(this, notification), false);
+            localNotification.addEventListener('close', () => {
+                this.deliveredNotifications = this.deliveredNotifications.filter(() => !this);
+            }, false);
+            this.deliveredNotifications.push(localNotification);
+            return localNotification;
+        }
+        onClick(notification) {
+            const data = {
+                actionId: 'tap',
+                notification,
+            };
+            this.notifyListeners('localNotificationActionPerformed', data);
+        }
+        onShow(notification) {
+            this.notifyListeners('localNotificationReceived', notification);
+        }
+    }
+
+    var web = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        LocalNotificationsWeb: LocalNotificationsWeb
+    });
+
+    exports.LocalNotifications = LocalNotifications;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
+
+    return exports;
+
+})({}, capacitorExports);
+//# sourceMappingURL=plugin.js.map
+</script>
 <script>/* ============================================================
  * finance.js — Motor financiero (sin dependencias de interfaz)
  * Cada método de interés tiene su propia lógica separada.
@@ -1497,6 +1703,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       short: 'Simple',
       help: 'El interés se cobra en cada cuota sobre el capital original. Interés total = capital × tasa × cantidad de cuotas.'
     },
+    decreciente: {
+      label: 'Decreciente (capital fijo, interés sobre balance)',
+      short: 'Decreciente',
+      help: 'Cada cuota paga la misma parte del capital y el interés se calcula sobre el balance pendiente, por eso la cuota baja con el tiempo. Ej.: RD$10,000 al 20% en 10 cuotas: primera cuota RD$3,000, última RD$1,200.'
+    },
     saldo: {
       label: 'Interés sobre saldo (cuota fija, amortización)',
       short: 'Sobre saldo',
@@ -1521,7 +1732,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     if (!FREQUENCIES[p.frequency]) e.push('Frecuencia de pago no válida.');
     if (!METHODS[p.method]) e.push('Método de cálculo no válido.');
     if (p.rateType !== 'porcentual' && p.rateType !== 'monto') e.push('Tipo de interés no válido.');
-    if (p.method === 'saldo' && p.rateType !== 'porcentual') e.push('El interés sobre saldo solo admite tasa porcentual.');
+    if ((p.method === 'saldo' || p.method === 'decreciente') && p.rateType !== 'porcentual') e.push('Este método solo admite tasa porcentual.');
     if (p.rateType === 'porcentual' && p.rate > 100) e.push('La tasa porcentual no puede ser mayor a 100% por período.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.disbursedDate || '')) e.push('Fecha de entrega no válida.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.firstDate || '')) e.push('Fecha del primer pago no válida.');
@@ -1557,6 +1768,16 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       formula = p.rateType === 'porcentual'
         ? `Interés por cuota = ${P} × ${rate}% = ${iPer}. Interés total = ${iPer} × ${n} = ${r2(iPer * n)}.`
         : `Interés por cuota = ${iPer}. Interés total = ${iPer} × ${n} = ${r2(iPer * n)}.`;
+    } else if (p.method === 'decreciente') {
+      // Sistema alemán: capital fijo, interés sobre el balance antes de cada cuota
+      const r = rate / 100, caps = splitEven(P, n);
+      let saldo = P;
+      rows = dates.map((date, i) => {
+        const interest = r2(saldo * r);
+        saldo = r2(saldo - caps[i]);
+        return { n: i + 1, date, capital: caps[i], interest };
+      });
+      formula = `Capital por cuota = ${P} ÷ ${n} = ${caps[0]}. Interés de cada cuota = balance pendiente × ${rate}% (primera: ${P} × ${rate}% = ${rows[0].interest}).`;
     } else if (p.method === 'saldo') {
       // Sistema francés: cuota fija, interés sobre saldo
       const r = rate / 100;
@@ -2690,6 +2911,156 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 })(this);
 </script>
 <script>/* ============================================================
+ * backup.js — Respaldos cifrados, programación, notificaciones,
+ * envío a contactos de emergencia y nube (Google Drive + correo
+ * mediante un Apps Script en la cuenta del propio usuario).
+ * ============================================================ */
+(function (root) {
+  'use strict';
+  const DB = root.DB, U = root.U, F = root.Finance;
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const ITER = 200000;
+
+  /* ---------- utilidades binarias ---------- */
+  const toHex = (b) => Array.from(new Uint8Array(b), (x) => x.toString(16).padStart(2, '0')).join('');
+  const fromHex = (h) => new Uint8Array(h.match(/.{2}/g).map((x) => parseInt(x, 16)));
+  function toB64(buf) {
+    const bytes = new Uint8Array(buf); let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+  function fromB64(b64) { const s = atob(b64); const out = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+  const rand = (n) => { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; };
+
+  async function deriveRaw(password, salt) {
+    const k = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+    return crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' }, k, 256);
+  }
+  const aesKey = (raw, usage) => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, usage);
+
+  /* ---------- configuración ---------- */
+  const DEFAULTS = { frequency: 15, contacts: [], emails: [], scriptUrl: '', token: '', keep: 30, driveDaily: true };
+  const cfg = () => ({ ...DEFAULTS, ...(DB.meta('backupCfg') || {}) });
+  const saveCfg = (c) => DB.setMeta('backupCfg', c);
+  const hasKey = () => !!DB.meta('backupKey');
+
+  /** Define (o cambia) la clave de respaldo. Se guarda la clave derivada, nunca la contraseña. */
+  async function setPassword(pw) {
+    if (!pw || pw.length < 6) throw new Error('La clave de respaldo debe tener al menos 6 caracteres.');
+    const salt = rand(16);
+    const raw = await deriveRaw(pw, salt);
+    await DB.setMeta('backupKey', { salt: toHex(salt), raw: toHex(raw), setAt: new Date().toISOString() });
+  }
+
+  /** Genera el archivo de respaldo cifrado (Blob JSON) con todos los datos. */
+  async function buildFile() {
+    const k = DB.meta('backupKey');
+    if (!k) throw new Error('Primero defina la clave de respaldo.');
+    const plain = enc.encode(JSON.stringify(DB.exportAll()));
+    const iv = rand(12);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey(fromHex(k.raw), ['encrypt']), plain);
+    const c = U.company();
+    const file = { app: 'mi-financiera', format: 2, encrypted: true, kdf: 'PBKDF2-SHA256', iter: ITER, salt: k.salt, iv: toHex(iv),
+      company: c.name, exportedAt: new Date().toISOString(), data: toB64(ct) };
+    const text = JSON.stringify(file);
+    const stamp = F.todayISO();
+    return { text, blob: new Blob([text], { type: 'application/json' }), filename: `Respaldo ${c.name} ${stamp}.json`.replace(/[\\/:*?"<>|]+/g, '-') };
+  }
+
+  /** Lee un archivo de respaldo (cifrado o antiguo sin cifrar). */
+  async function parseFile(text, password) {
+    let json; try { json = JSON.parse(text); } catch (e) { throw new Error('El archivo no es un respaldo válido.'); }
+    if (json.app !== 'mi-financiera') throw new Error('El archivo no es un respaldo de esta aplicación.');
+    if (!json.encrypted) return json;
+    if (!password) { const e = new Error('Este respaldo está protegido con clave.'); e.needPassword = true; throw e; }
+    try {
+      const raw = await deriveRaw(password, fromHex(json.salt));
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromHex(json.iv) }, await aesKey(raw, ['decrypt']), fromB64(json.data));
+      return JSON.parse(dec.decode(pt));
+    } catch (e) { const er = new Error('Clave de respaldo incorrecta.'); er.needPassword = true; throw er; }
+  }
+  const isEncrypted = (text) => { try { return !!JSON.parse(text).encrypted; } catch (e) { return false; } };
+
+  /* ---------- registro y fechas ---------- */
+  function log(dest, ok, detail) {
+    const l = (DB.meta('backupLog') || []).slice(-59);
+    l.push({ at: new Date().toISOString(), dest, ok, detail: detail || '' });
+    return DB.setMeta('backupLog', l);
+  }
+  const lastSent = () => DB.meta('lastBackupSent');      // envío a contactos / correo (programado)
+  const lastCloud = () => DB.meta('lastCloudBackup');     // subida a Drive
+  function nextDue() {
+    const c = cfg(); if (!c.frequency) return null;
+    const last = lastSent();
+    return last ? F.addDays(last.slice(0, 10), c.frequency) : F.todayISO();
+  }
+  const isDue = () => { const n = nextDue(); return !!n && n <= F.todayISO() && (cfg().contacts.length || cfg().emails.length || cfg().scriptUrl); };
+
+  /* ---------- Nube: Apps Script del usuario (Drive + correo) ---------- */
+  const cloudReady = () => { const c = cfg(); return /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(c.scriptUrl) && c.token.length >= 6; };
+  async function callScript(payload, c = cfg()) {
+    const res = await fetch(c.scriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: c.token, ...payload }), redirect: 'follow' });
+    let data; try { data = await res.json(); } catch (e) { throw new Error('Google respondió algo inesperado. Revise que el script esté implementado como "Aplicación web" con acceso "Cualquier persona".'); }
+    if (!data.ok) throw new Error(data.error || 'Error en el script de Google.');
+    return data;
+  }
+  async function testCloud(url, token) { return callScript({ action: 'ping' }, { ...cfg(), scriptUrl: url.trim(), token: token.trim() }); }
+  /** Sube el respaldo a Drive y, si se indica, lo envía por correo a los contactos. */
+  async function uploadCloud({ withEmail }) {
+    const c = cfg(), f = await buildFile();
+    const r = await callScript({ action: 'backup', filename: f.filename, content: f.text, keep: c.keep,
+      emails: withEmail ? c.emails : [], subject: `Respaldo ${U.company().name} - ${U.date(F.todayISO())}`,
+      message: `Respaldo automático de ${U.company().name} generado el ${U.dateTime(new Date().toISOString())}.\n\nEl archivo está protegido con la clave de respaldo. Para restaurarlo: Mi Financiera → Más → Copias de seguridad → Restaurar.` });
+    await DB.setMeta('lastCloudBackup', new Date().toISOString());
+    await DB.setMeta('lastBackup', new Date().toISOString());
+    await log('drive', true, r.url || '');
+    if (withEmail && c.emails.length) await log('correo', true, c.emails.join(', '));
+    return r;
+  }
+
+  /** Al abrir la app: Drive diario y correo según la frecuencia, sin intervención. */
+  let autoRunning = false;
+  async function autoRun() {
+    if (autoRunning || !hasKey() || !cloudReady()) return null;
+    const c = cfg(), today = F.todayISO();
+    const lc = lastCloud();
+    const driveDue = !lc || (c.driveDaily ? lc.slice(0, 10) < today : F.diffDays(lc.slice(0, 10), today) >= c.frequency);
+    const emailDue = c.emails.length > 0 && isDue();
+    if (!driveDue && !emailDue) return null;
+    autoRunning = true;
+    try {
+      const r = await uploadCloud({ withEmail: emailDue });
+      if (emailDue && !c.contacts.length) await DB.setMeta('lastBackupSent', new Date().toISOString());
+      await scheduleReminder();
+      return { ok: true, emailed: emailDue, url: r.url };
+    } catch (e) { await log('drive', false, e.message); return { ok: false, error: e.message }; }
+    finally { autoRunning = false; }
+  }
+
+  /* ---------- Notificaciones locales (APK) ---------- */
+  const LN = () => root.capacitorLocalNotifications && root.capacitorLocalNotifications.LocalNotifications;
+  async function scheduleReminder() {
+    const ln = LN(); if (!U.isNative || !ln) return false;
+    try {
+      await ln.cancel({ notifications: [{ id: 1001 }] }).catch(() => {});
+      const n = nextDue(); if (!n || (!cfg().contacts.length && !cfg().emails.length)) return false;
+      let perm = await ln.checkPermissions();
+      if (perm.display !== 'granted') perm = await ln.requestPermissions();
+      if (perm.display !== 'granted') return false;
+      const at = F.parseDate(n); at.setHours(9, 0, 0, 0);
+      if (at.getTime() < Date.now() + 60000) at.setTime(Date.now() + 2 * 60000);
+      await ln.schedule({ notifications: [{ id: 1001, title: 'Respaldo de ' + U.company().name, body: 'Toca enviar el respaldo a sus contactos de emergencia.', schedule: { at, allowWhileIdle: true } }] });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  async function markSent() { await DB.setMeta('lastBackupSent', new Date().toISOString()); await DB.setMeta('lastBackup', new Date().toISOString()); await scheduleReminder(); }
+
+  root.Backup = { cfg, saveCfg, hasKey, setPassword, buildFile, parseFile, isEncrypted, log, lastSent, lastCloud, nextDue, isDue,
+    cloudReady, testCloud, uploadCloud, autoRun, scheduleReminder, markSent };
+})(this);
+</script>
+<script>/* ============================================================
  * ui.js — Núcleo de interfaz: diseño, enrutador, modales,
  * avisos, formularios y gráficos SVG.
  * ============================================================ */
@@ -2979,6 +3350,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       setupIdleLock();
     }
     UI.render();
+    if (Auth.current) setTimeout(runAuto, 2000);
   }
 
   /* Bloqueo automático por inactividad */
@@ -3114,6 +3486,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       setupIdleLock();
       if (!location.hash || location.hash === '#/login') location.hash = '/';
       UI.render();
+      setTimeout(runAuto, 2000);
     });
   }
   function recoverScreen() {
@@ -3143,7 +3516,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const d = S.dashboard(), c = U.company(), u = Auth.current;
     const months = S.monthlySeries(6), days = S.dailySeries(7);
     const lastBackup = DB.meta('lastBackup');
-    const needBackup = can('*') && DB.all('loans').length > 0 && (!lastBackup || F.diffDays(lastBackup.slice(0, 10), F.todayISO()) >= 7);
+    const backupDue = can('*') && root.Backup.hasKey() && root.Backup.isDue() && (root.Backup.cfg().contacts.length > 0 || (!root.Backup.cloudReady() && root.Backup.cfg().emails.length > 0));
+    const needBackup = !backupDue && can('*') && DB.all('loans').length > 0 && (!root.Backup.hasKey() || !lastBackup || F.diffDays(lastBackup.slice(0, 10), F.todayISO()) >= 7);
     const hour = new Date().getHours(), greet = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
     const main = page({ title: c.name, sub: `${greet}, ${esc(u.name.split(' ')[0])}`, brand: true,
       actions: `<button class="icon-btn" data-go="/ajustes" aria-label="Ajustes">${icon('settings')}</button>`,
@@ -3163,7 +3537,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         </div>
         ${d.late ? `<div class="banner t-danger" data-go="/cobros?tab=atrasados" style="cursor:pointer">${icon('alert')}<div><b>${d.late} préstamo(s) atrasado(s)</b><br>${money(d.overdueAmount)} en cuotas vencidas. Toque para ver.</div></div>` : ''}
         ${U.isPreview ? `<div class="banner t-info">${icon('info')}<div><b>Vista de prueba.</b> Aquí los datos pueden borrarse. Para usarla en su negocio, instale el archivo de la app en su propio enlace (vea las instrucciones).</div></div>` : ''}
-        ${needBackup ? `<div class="banner t-warning" data-go="/respaldo" style="cursor:pointer">${icon('shield')}<div><b>Haga una copia de seguridad</b><br>${lastBackup ? 'Último respaldo: ' + U.date(lastBackup.slice(0, 10)) : 'Aún no ha guardado ningún respaldo.'}</div></div>` : ''}
+        ${backupDue ? `<div class="banner t-warning" data-go="/respaldo?enviar=1" style="cursor:pointer">${icon('share')}<div><b>Toca enviar el respaldo</b><br>Envíelo a sus contactos de emergencia. Toque aquí.</div></div>` : ''}
+        ${needBackup ? `<div class="banner t-warning" data-go="/respaldo" style="cursor:pointer">${icon('shield')}<div><b>${root.Backup.hasKey() ? 'Haga una copia de seguridad' : 'Configure sus copias de seguridad'}</b><br>${lastBackup ? 'Último respaldo: ' + U.date(lastBackup.slice(0, 10)) : 'Defina su clave y sus contactos de emergencia.'}</div></div>` : ''}
         <div class="stats">
           ${stat('Cobrado hoy', money(d.today), 'cash', 't-success')}
           ${stat('Cobrado esta semana', money(d.week), 'trend', 't-success')}
@@ -3420,8 +3795,9 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       $('#mhelp', form).textContent = F.METHODS[d.method].help;
       $('#sun', form).classList.toggle('hidden', d.frequency !== 'diario');
       const monto = $('input[name="rateType"][value="monto"]', form);
-      monto.disabled = d.method === 'saldo'; monto.parentElement.style.opacity = d.method === 'saldo' ? '.4' : '1';
-      if (d.method === 'saldo' && d.rateType === 'monto') { $('input[name="rateType"][value="porcentual"]', form).checked = true; }
+      const pctOnly = d.method === 'saldo' || d.method === 'decreciente';
+      monto.disabled = pctOnly; monto.parentElement.style.opacity = pctOnly ? '.4' : '1';
+      if (pctOnly && d.rateType === 'monto') { $('input[name="rateType"][value="porcentual"]', form).checked = true; }
     };
     const autoFirst = () => {
       if (firstTouched) return;
@@ -3962,35 +4338,133 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   /* ============================================================
    * Copias de seguridad
    * ============================================================ */
-  UI.route('/respaldo', () => {
-    const last = DB.meta('lastBackup');
+  UI.route('/respaldo', (_, q) => {
+    const B = root.Backup, c = B.cfg();
+    const last = DB.meta('lastBackup'), lc = B.lastCloud(), nd = B.nextDue(), key = DB.meta('backupKey');
     const counts = ['clients', 'loans', 'payments', 'expenses'].map((s) => DB.all(s).length);
+    const logs = (DB.meta('backupLog') || []).slice(-8).reverse();
+    const DEST = { drive: 'Google Drive', correo: 'Correo', whatsapp: 'WhatsApp', archivo: 'Archivo' };
     const main = page({ title: 'Copias de seguridad', back: '/mas', body: `
-      <div class="banner ${last ? 't-success' : 't-warning'}">${icon('shield')}<div>${last ? `Último respaldo: <b>${U.dateTime(last)}</b>` : '<b>Aún no ha hecho ningún respaldo.</b>'}<br>
-        ${counts[0]} clientes · ${counts[1]} préstamos · ${counts[2]} pagos · ${counts[3]} gastos</div></div>
-      <div class="card"><h3>Crear respaldo</h3><p class="small muted">Genera un archivo con toda la información. Guárdelo en Google Drive, envíeselo por WhatsApp o correo, o páselo a su computadora.</p>
-        <button class="btn block" id="exp">${icon('download')} Crear y guardar respaldo</button></div>
-      <div class="card"><h3>Restaurar respaldo</h3><p class="small muted">Reemplaza <b>todos</b> los datos actuales por los del archivo. Úselo para pasar la información a otro teléfono.</p>
-        <button class="btn secondary block" id="imp">${icon('upload')} Elegir archivo de respaldo</button><input type="file" id="impf" accept=".json,application/json" hidden></div>
+      <div class="banner ${last ? 't-success' : 't-warning'}">${icon('shield')}<div>${last ? `Último respaldo: <b>${U.dateTime(last)}</b>` : '<b>Aún no ha hecho ningún respaldo.</b>'}
+        ${lc ? `<br>Última copia en Drive: <b>${U.dateTime(lc)}</b>` : ''}${nd && c.frequency ? `<br>Próximo envío a contactos: <b>${U.date(nd)}</b>` : ''}
+        <br><span class="small">${counts[0]} clientes · ${counts[1]} préstamos · ${counts[2]} pagos · ${counts[3]} gastos</span></div></div>
+      <button class="btn block" id="send">${icon('share')} Enviar respaldo ahora</button>
+
+      <div class="section-title">1 · Clave de respaldo</div>
+      <div class="card"><p class="small muted">Los respaldos se guardan <b>cifrados</b>. Sin esta clave nadie puede abrirlos, ni siquiera sus contactos de emergencia. <b>Anótela en un lugar seguro</b>: si la olvida, los respaldos no se podrán restaurar.</p>
+        ${key ? `<div class="banner t-success mb0">${icon('lock')}<div>Clave definida el ${U.dateTime(key.setAt)}</div></div>` : `<div class="banner t-danger mb0">${icon('alert')}<div>Todavía no ha definido la clave de respaldo.</div></div>`}
+        <button class="btn ${key ? 'ghost' : ''} block mt" id="kp">${icon('key')} ${key ? 'Cambiar clave de respaldo' : 'Definir clave de respaldo'}</button></div>
+
+      <div class="section-title">2 · Programación y contactos de emergencia</div>
+      <div class="card">
+        ${field({ name: 'freq', label: 'Enviar respaldo a contactos y correo', value: String(c.frequency), options: [['0', 'Desactivado'], ['15', 'Cada 15 días'], ['30', 'Cada mes']] })}
+        <label class="field" style="display:block"><b class="small">Contactos de WhatsApp</b></label>
+        <div class="list" id="cl">${c.contacts.length ? c.contacts.map((x, i) => `<div class="item"><div class="avatar" style="background:#e3f6ee;color:#0e9f6e">${icon('whatsapp')}</div><div class="grow"><div class="title">${esc(x.name)}</div><div class="meta">${esc(U.formatPhone(x.phone))}</div></div><button class="icon-btn" data-delc="${i}" aria-label="Quitar">${icon('trash')}</button></div>`).join('') : '<div class="empty small">Sin contactos de emergencia.</div>'}</div>
+        <div class="row2"><input class="in" id="cn" placeholder="Nombre"><input class="in" id="cp" type="tel" inputmode="tel" placeholder="WhatsApp"></div>
+        <button class="btn secondary block mt" id="addc">${icon('plus')} Agregar contacto</button>
+        <label class="field mt" style="display:block;margin-top:18px"><b class="small">Correos de respaldo</b></label>
+        <div class="list" id="el">${c.emails.length ? c.emails.map((x, i) => `<div class="item"><div class="avatar">${icon('file')}</div><div class="grow"><div class="title">${esc(x)}</div></div><button class="icon-btn" data-dele="${i}" aria-label="Quitar">${icon('trash')}</button></div>`).join('') : '<div class="empty small">Sin correos.</div>'}</div>
+        <input class="in" id="em" type="email" inputmode="email" autocapitalize="off" placeholder="correo@ejemplo.com">
+        <button class="btn secondary block mt" id="adde">${icon('plus')} Agregar correo</button>
+        ${U.isNative ? '<p class="small muted mt">El día del envío le llegará una notificación al teléfono.</p>' : ''}
+      </div>
+
+      <div class="section-title">3 · Google Drive y correo automáticos</div>
+      <div class="card">${B.cloudReady() ? `
+        <div class="banner t-success">${icon('check')}<div><b>Conectado${DB.meta('cloudAccount') ? ' a ' + esc(DB.meta('cloudAccount')) : ''}.</b><br>Cada día que abra la app se sube una copia a Drive (se guardan las últimas ${c.keep}). Los correos se envían solos según la programación.</div></div>
+        <label class="check field"><input type="checkbox" id="dd" ${c.driveDaily ? 'checked' : ''}> Subir a Drive todos los días</label>
+        <div class="actions"><button class="btn secondary" id="up">${icon('upload')} Subir ahora</button><button class="btn danger" id="disc">Desconectar</button></div>`
+      : `<p class="small muted">Haga esto una sola vez desde una computadora. La app se conecta a un pequeño programa en <b>su propia cuenta de Google</b> que guarda los respaldos en su Drive y envía los correos solo.</p>
+        <ol class="small" style="padding-left:18px;line-height:1.6">
+          <li>Copie el código con el botón de abajo (incluye su clave de conexión).</li>
+          <li>Entre a <b>script.google.com</b> → <b>Nuevo proyecto</b>, borre lo que hay y pegue el código. Guarde.</li>
+          <li>Arriba elija la función <b>autorizar</b> y toque <b>Ejecutar</b>. Acepte los permisos (si sale "Google no verificó esta app": <i>Configuración avanzada → Ir a … (no seguro)</i>).</li>
+          <li><b>Implementar → Nueva implementación →</b> tipo <b>Aplicación web</b>. Ejecutar como: <b>Yo</b>. Quién tiene acceso: <b>Cualquier persona</b>. Implementar.</li>
+          <li>Copie la <b>URL de la aplicación web</b> y péguela aquí abajo.</li></ol>
+        <div class="field"><label>Clave de conexión</label><div class="flex"><input class="in" id="tk" value="${esc(c.token || '')}" readonly><button class="icon-btn" id="cptk" aria-label="Copiar">${icon('file')}</button></div></div>
+        <button class="btn secondary block" id="cps">${icon('file')} Copiar código del script</button>
+        <div class="field mt" style="margin-top:14px"><label>URL de la aplicación web</label><input class="in" id="url" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off"></div>
+        <button class="btn block" id="con">${icon('check')} Probar y conectar</button>`}
+      </div>
+
+      <div class="section-title">Restaurar</div>
+      <div class="card"><p class="small muted">Reemplaza <b>todos</b> los datos actuales por los del archivo. Úselo en un teléfono nuevo. Puede elegir el archivo desde Drive, WhatsApp o Descargas.</p>
+        <button class="btn secondary block" id="imp">${icon('upload')} Elegir archivo de respaldo</button><input type="file" id="impf" accept=".json,application/json,text/plain,*/*" hidden></div>
+
+      ${logs.length ? `<div class="section-title">Historial</div><div class="list">${logs.map((l) => `<div class="item" style="cursor:default"><div class="avatar" style="background:var(--${l.ok ? 'success' : 'danger'}-soft);color:var(--${l.ok ? 'success' : 'danger'})">${icon(l.ok ? 'check' : 'x')}</div><div class="grow"><div class="title">${DEST[l.dest] || esc(l.dest)}</div><div class="meta">${U.dateTime(l.at)}${l.detail ? ' · ' + esc(l.detail) : ''}</div></div></div>`).join('')}</div>` : ''}
+
       <div class="card"><h3 class="c-danger">Zona de peligro</h3><p class="small muted">Borra toda la información de este dispositivo.</p>
         <button class="btn danger block" id="wipe">${icon('trash')} Borrar todos los datos</button></div>` });
-    $('#exp', main).onclick = async () => {
-      const data = DB.exportAll();
-      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      const name = `Respaldo ${U.company().name} ${F.todayISO()}.json`;
-      const r = await Docs.share(blob, name, { text: 'Respaldo de ' + U.company().name });
-      if (r !== 'cancelled') { await DB.setMeta('lastBackup', new Date().toISOString()); toast('Respaldo creado'); UI.render(); }
+
+    const save = async (patch) => { await B.saveCfg({ ...B.cfg(), ...patch }); await B.scheduleReminder(); UI.render(); };
+    const needKey = async () => { if (B.hasKey()) return true; toast('Primero defina la clave de respaldo.', 'err'); await keySheet(); return B.hasKey(); };
+
+    $('#kp', main).onclick = () => keySheet().then(() => UI.render());
+    $('#send', main).onclick = async () => { if (await needKey()) sendWizard(); };
+    $('[name="freq"]', main).onchange = (e) => save({ frequency: Number(e.target.value) });
+    $('#addc', main).onclick = () => {
+      const name = $('#cn', main).value.trim(), phone = U.normDigits($('#cp', main).value);
+      if (name.length < 2 || phone.length < 7) return toast('Escriba nombre y WhatsApp válidos.', 'err');
+      if (B.cfg().contacts.some((x) => x.phone === phone)) return toast('Ese número ya está en la lista.', 'err');
+      save({ contacts: B.cfg().contacts.concat([{ name, phone }]) });
     };
+    $('#adde', main).onclick = () => {
+      const em = $('#em', main).value.trim().toLowerCase();
+      if (!U.isEmail(em)) return toast('Correo no válido.', 'err');
+      if (B.cfg().emails.includes(em)) return toast('Ese correo ya está en la lista.', 'err');
+      save({ emails: B.cfg().emails.concat([em]) });
+    };
+    $$('[data-delc]', main).forEach((b) => (b.onclick = () => save({ contacts: B.cfg().contacts.filter((_, i) => i !== Number(b.dataset.delc)) })));
+    $$('[data-dele]', main).forEach((b) => (b.onclick = () => save({ emails: B.cfg().emails.filter((_, i) => i !== Number(b.dataset.dele)) })));
+
+    if (B.cloudReady()) {
+      $('#dd', main).onchange = (e) => save({ driveDaily: e.target.checked });
+      $('#up', main).onclick = async (e) => {
+        if (!(await needKey())) return;
+        e.target.disabled = true;
+        try { await B.uploadCloud({ withEmail: false }); toast('Copia subida a Google Drive'); UI.render(); }
+        catch (err) { await B.log('drive', false, err.message); toast(err.message, 'err', 5000); e.target.disabled = false; }
+      };
+      $('#disc', main).onclick = async () => { if (await confirm({ title: 'Desconectar Google', message: 'Dejará de subirse la copia automática a Drive y de enviarse los correos solos.', ok: 'Desconectar', danger: true })) save({ scriptUrl: '' }); };
+    } else {
+      if (!c.token) { const t = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 20); B.saveCfg({ ...B.cfg(), token: t }); $('#tk', main).value = t; }
+      const copy = async (text, msg) => { try { await navigator.clipboard.writeText(text); toast(msg); } catch (e) { U.downloadBlob(new Blob([text], { type: 'text/plain' }), 'script-mi-financiera.txt'); } };
+      $('#cptk', main).onclick = () => copy(B.cfg().token, 'Clave copiada');
+      $('#cps', main).onclick = () => copy(scriptCode(B.cfg().token), 'Código copiado. Péguelo en script.google.com');
+      $('#con', main).onclick = async (e) => {
+        const url = $('#url', main).value.trim();
+        if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(url)) return toast('La URL debe empezar con https://script.google.com/macros/s/ y terminar en /exec', 'err', 5000);
+        e.target.disabled = true;
+        try {
+          const r = await B.testCloud(url, B.cfg().token);
+          await DB.setMeta('cloudAccount', r.cuenta || '');
+          await B.saveCfg({ ...B.cfg(), scriptUrl: url });
+          toast('Conectado a Google' + (r.cuenta ? ': ' + r.cuenta : ''));
+          if (B.hasKey()) { try { await B.uploadCloud({ withEmail: false }); toast('Primera copia subida a Drive'); } catch (err) { toast(err.message, 'err'); } }
+          UI.render();
+        } catch (err) { toast(err.message || 'No se pudo conectar. Revise la URL y que el script esté implementado.', 'err', 6000); e.target.disabled = false; }
+      };
+    }
+
     $('#imp', main).onclick = () => $('#impf', main).click();
     $('#impf', main).onchange = async (e) => {
       const f = e.target.files[0]; if (!f) return;
       try {
-        const json = JSON.parse(await f.text());
+        const text = await f.text();
+        let json;
+        try { json = await B.parseFile(text); }
+        catch (err) {
+          if (!err.needPassword) throw err;
+          const pw = await confirm({ title: 'Respaldo protegido', message: 'Escriba la clave de respaldo con la que se creó este archivo.', ok: 'Abrir', input: { type: 'password' } });
+          if (pw === null) return;
+          json = await B.parseFile(text, pw);
+        }
         const n = json.data ? (json.data.loans || []).length : 0;
         if (!(await confirm({ title: 'Restaurar respaldo', message: `El archivo es del ${json.exportedAt ? U.dateTime(json.exportedAt) : '—'} y contiene ${n} préstamo(s). Se reemplazarán todos los datos actuales. Después deberá iniciar sesión con los usuarios del respaldo.`, ok: 'Restaurar', danger: true }))) return;
         await DB.importAll(json); S.invalidate(); Auth.logout(); UI.applyBrand(); UI.applyTheme();
         toast('Datos restaurados'); loginScreen();
-      } catch (err) { toast(err.message.includes('JSON') ? 'El archivo no es un respaldo válido.' : err.message, 'err', 4500); }
+      } catch (err) { toast(err.message, 'err', 4500); }
+      finally { e.target.value = ''; }
     };
     $('#wipe', main).onclick = async () => {
       const pw = await confirm({ title: 'Borrar todos los datos', message: 'Esta acción <b>no se puede deshacer</b>. Escriba su contraseña para confirmar.', ok: 'Borrar todo', danger: true, input: { type: 'password' } });
@@ -3998,7 +4472,126 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       if (!(await Auth.verify(Auth.current, pw))) return toast('Contraseña incorrecta.', 'err');
       await DB.wipe(); Auth.logout(); sessionStorage.clear(); location.hash = ''; location.reload();
     };
+    if (q.enviar && B.hasKey()) { history.replaceState(null, '', '#/respaldo'); sendWizard(); }
   }, { perm: '*' });
+
+  /* Definir / cambiar la clave de respaldo */
+  function keySheet() {
+    return new Promise((resolve) => {
+      const had = root.Backup.hasKey();
+      sheet(`<h2>${had ? 'Cambiar' : 'Definir'} clave de respaldo</h2>
+        <p>${had ? 'Los respaldos anteriores seguirán necesitando la clave anterior.' : 'Con esta clave se protegen todos los respaldos. Guárdela en un lugar seguro, fuera del teléfono.'}</p>
+        <form id="kf" novalidate>${field({ name: 'pw', label: 'Clave de respaldo', type: 'password', hint: 'Mínimo 6 caracteres. Puede ser distinta a la contraseña de entrada.' })}
+        ${field({ name: 'pw2', label: 'Repetir clave', type: 'password' })}
+        <div class="actions"><button type="button" class="btn ghost" id="kx">Cancelar</button><button class="btn" type="submit">Guardar clave</button></div></form>`,
+      (el, close) => {
+        $('#kx', el).onclick = () => { close(); resolve(false); };
+        const form = $('#kf', el);
+        UI.onSubmit(form, async (d) => {
+          if (d.pw !== d.pw2) return UI.showErrors(form, { pw2: 'Las claves no coinciden.' });
+          if (d.pw.length < 6) return UI.showErrors(form, { pw: 'Mínimo 6 caracteres.' });
+          await root.Backup.setPassword(d.pw); close(); toast('Clave de respaldo guardada'); resolve(true);
+        });
+      });
+    });
+  }
+
+  /* Asistente de envío: Drive/correo automático + WhatsApp de cada contacto */
+  async function sendWizard() {
+    const B = root.Backup, c = B.cfg();
+    let file;
+    try { file = await B.buildFile(); } catch (e) { return toast(e.message, 'err'); }
+    const text = `Respaldo de ${U.company().name} del ${U.date(F.todayISO())}. Guárdelo; está protegido con clave.`;
+    const steps = [];
+    if (B.cloudReady()) steps.push({ id: 'cloud', icon: 'upload', title: c.emails.length ? 'Google Drive + correo' : 'Google Drive', sub: c.emails.length ? 'Automático · ' + c.emails.join(', ') : 'Automático' });
+    else {
+      steps.push({ id: 'file', icon: 'upload', title: 'Guardar en Drive o enviar por correo', sub: 'Elija Drive o Gmail en el menú' + (c.emails.length ? ' · para: ' + c.emails.join(', ') : '') });
+    }
+    c.contacts.forEach((x, i) => steps.push({ id: 'wa' + i, icon: 'whatsapp', title: 'WhatsApp: ' + x.name, sub: U.formatPhone(x.phone), contact: x }));
+    const done = {};
+    sheet(`<h2>Enviar respaldo</h2><p>Toque cada destino. En WhatsApp elija el contacto indicado y toque <b>Enviar</b>.</p>
+      <div class="list" id="ws">${steps.map((s) => `<div class="item" data-s="${s.id}"><div class="avatar" style="${s.icon === 'whatsapp' ? 'background:#e3f6ee;color:#0e9f6e' : ''}">${icon(s.icon)}</div><div class="grow"><div class="title">${esc(s.title)}</div><div class="meta">${esc(s.sub)}</div></div><span class="chip t-info" id="st-${s.id}">Enviar</span></div>`).join('')}</div>
+      ${!c.contacts.length ? '<p class="small muted">Consejo: agregue contactos de emergencia en esta misma pantalla.</p>' : ''}
+      <button class="btn block" id="wdone">Listo</button>`,
+    (el, close) => {
+      const mark = (id, ok, msg) => { const ch = $('#st-' + id, el); ch.className = 'chip ' + (ok ? 't-success' : 't-danger'); ch.textContent = msg || (ok ? 'Enviado ✓' : 'Error'); done[id] = ok; };
+      $$('[data-s]', el).forEach((row) => (row.onclick = async () => {
+        const s = steps.find((x) => x.id === row.dataset.s);
+        if (s.id === 'cloud') {
+          $('#st-cloud', el).textContent = 'Subiendo…';
+          try { await B.uploadCloud({ withEmail: c.emails.length > 0 }); mark('cloud', true); } catch (e) { await B.log('drive', false, e.message); mark('cloud', false); toast(e.message, 'err', 5000); }
+        } else if (s.id === 'file') {
+          const r = await Docs.share(file.blob, file.filename, { text });
+          if (r !== 'cancelled') { mark('file', true, 'Compartido ✓'); await B.log('archivo', true); }
+        } else {
+          const r = await Docs.share(file.blob, file.filename, { text: text, whatsapp: true, phone: s.contact.phone });
+          if (r !== 'cancelled') { mark(s.id, true, 'Compartido ✓'); await B.log('whatsapp', true, s.contact.name); }
+        }
+      }));
+      $('#wdone', el).onclick = async () => {
+        if (Object.values(done).some(Boolean)) { await B.markSent(); toast('Respaldo registrado'); }
+        close(); UI.render();
+      };
+    });
+  }
+
+  function scriptCode(token) {
+    return `// Mi Financiera - receptor de respaldos (Google Drive + correo)
+const CLAVE = '${token}';
+const CARPETA = 'Respaldos Mi Financiera';
+
+function doPost(e) {
+  try {
+    const p = JSON.parse(e.postData.contents);
+    if (p.token !== CLAVE) return salida({ ok: false, error: 'Clave de conexión incorrecta.' });
+    if (p.action === 'ping') return salida({ ok: true, cuenta: Session.getEffectiveUser().getEmail() });
+    if (p.action !== 'backup') return salida({ ok: false, error: 'Acción no válida.' });
+    const carpeta = obtenerCarpeta();
+    const archivo = carpeta.createFile(Utilities.newBlob(p.content, 'application/json', p.filename));
+    limpiar(carpeta, p.keep || 30);
+    if (p.emails && p.emails.length) {
+      MailApp.sendEmail({ to: p.emails.join(','), subject: p.subject, body: p.message,
+        attachments: [Utilities.newBlob(p.content, 'application/json', p.filename)] });
+    }
+    return salida({ ok: true, url: archivo.getUrl() });
+  } catch (err) {
+    return salida({ ok: false, error: String(err) });
+  }
+}
+
+function obtenerCarpeta() {
+  const it = DriveApp.getFoldersByName(CARPETA);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(CARPETA);
+}
+
+function limpiar(carpeta, guardar) {
+  const lista = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) lista.push(it.next());
+  lista.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+  lista.slice(guardar).forEach((f) => f.setTrashed(true));
+}
+
+function salida(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Ejecute esta función una vez para dar los permisos de Drive y Gmail
+function autorizar() {
+  obtenerCarpeta();
+  Logger.log('Correos disponibles hoy: ' + MailApp.getRemainingDailyQuota());
+}
+`;
+  }
+
+  /* Respaldo automático en la nube al entrar o volver a la app */
+  async function runAuto() {
+    if (!Auth.current || !root.Backup) return;
+    const r = await root.Backup.autoRun();
+    if (r && r.ok) toast(r.emailed ? 'Respaldo subido a Drive y enviado por correo' : 'Respaldo diario subido a Drive', 'ok', 3000);
+    else if (r && !r.ok) toast('No se pudo subir el respaldo a Drive: ' + r.error, 'err', 5000);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(runAuto, 1500); });
 
   root.addEventListener('DOMContentLoaded', () => boot().catch((e) => { console.error(e); document.body.innerHTML = `<div style="padding:30px;font-family:sans-serif">Error al iniciar: ${esc(e.message)}</div>`; }));
 })(this);
