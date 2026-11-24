@@ -1,0 +1,59 @@
+name: Compilar APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Preparar archivos
+        run: |
+          mkdir -p www
+          if [ -f index.html ]; then cp index.html www/index.html; fi
+          ls -la www
+      - name: Instalar dependencias
+        run: npm install
+      - name: Crear proyecto Android
+        run: npx cap add android
+      - name: Icono (si existe)
+        run: |
+          RES=android/app/src/main/res
+          if [ -d icons/res ]; then
+            rm -rf $RES/mipmap-anydpi-v26
+            cp -r icons/res/* $RES/
+          fi
+      - name: Sincronizar app web
+        run: npx cap sync android
+      - name: Compilar APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../MiFinanciera.apk
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiFinanciera-APK
+          path: MiFinanciera.apk
+      - name: Publicar APK en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Mi Financiera v1.0.${{ github.run_number }}
+          body: Descargue MiFinanciera.apk desde el celular e instálelo.
+          files: MiFinanciera.apk
