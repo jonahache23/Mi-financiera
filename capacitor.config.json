@@ -1,0 +1,6 @@
+{
+  "appId": "com.mifinanciera.app",
+  "appName": "Mi Financiera",
+  "webDir": "www",
+  "android": { "allowMixedContent": false, "captureInput": true, "webContentsDebuggingEnabled": false }
+}
