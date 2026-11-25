@@ -5175,6 +5175,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   const Auth = {
     ROLES,
+    isMaster,
     passwordIssues,
     current: null,
     can(perm) {
@@ -7894,10 +7895,16 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         ${item('/seguridad', 'lock', 't-primary', 'Seguridad', 'Contraseña, recuperación y bloqueo automático')}
         ${item('/usuarios', 'users', 't-info', 'Usuarios y permisos', 'Cobradores y empleados', '*')}
         ${item('/nube', 'upload', 't-info', 'Sincronización en la nube', Cloud.on ? 'Activa · PC y otros teléfonos conectados' : 'Use la app en la PC y en varios teléfonos', '*')}
+        ${devMode() && can('*') ? item('/dev', 'key', 't-warning', 'Área de desarrollador', 'Configuración técnica (modo activo)') : ''}
         ${item('/respaldo', 'shield', 't-success', 'Copias de seguridad', 'Exportar y restaurar sus datos', '*')}
       </div>
       <button class="btn danger block" id="out">${icon('logout')} Cerrar sesión</button>
-      <p class="center small muted mt">${esc(U.company().name)} · versión 1.0</p>` });
+      <p class="center small muted mt" id="ver" style="user-select:none">${esc(U.company().name)} · versión 1.0</p>` });
+    let taps = 0, tapTimer = null;
+    $('#ver', main).onclick = () => {
+      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => (taps = 0), 1500);
+      if (taps >= 5) { taps = 0; if (!can('*')) return toast('Solo el administrador.', 'err'); if (devMode()) go('/dev'); else unlockDev('/dev'); }
+    };
     $('#out', main).onclick = async () => {
       if (!(await confirm({ title: 'Cerrar sesión', message: Cloud.on ? 'Para volver a entrar necesitará internet y su contraseña.' : '¿Desea salir de la aplicación?', ok: 'Cerrar sesión' }))) return;
       if (Cloud.on) await Cloud.logout(); else Auth.logout();
@@ -8161,7 +8168,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       <div class="card">${B.cloudReady() ? `
         <div class="banner t-success">${icon('check')}<div><b>Conectado${DB.meta('cloudAccount') ? ' a ' + esc(DB.meta('cloudAccount')) : ''}.</b><br>Cada día que abra la app se sube una copia a Drive (se guardan las últimas ${c.keep}). Los correos se envían solos según la programación.</div></div>
         <label class="check field"><input type="checkbox" id="dd" ${c.driveDaily ? 'checked' : ''}> Subir a Drive todos los días</label>
-        <div class="actions"><button class="btn secondary" id="up">${icon('upload')} Subir ahora</button><button class="btn danger" id="disc">Desconectar</button></div>`
+        <div class="actions"><button class="btn secondary" id="up">${icon('upload')} Subir ahora</button>${devMode() ? '<button class="btn danger" id="disc">Desconectar</button>' : ''}</div>`
+      : !devMode() ? `<p class="small muted mb0">Todavía no está configurado. La copia automática en Google Drive y el envío por correo los configura el soporte técnico.</p><button class="btn ghost block mt" data-devunlock>${icon('key')} Soy el técnico (clave maestra)</button>`
       : `<p class="small muted">Haga esto una sola vez desde una computadora. La app se conecta a un pequeño programa en <b>su propia cuenta de Google</b> que guarda los respaldos en su Drive y envía los correos solo.</p>
         <ol class="small" style="padding-left:18px;line-height:1.6">
           <li>Copie el código con el botón de abajo (incluye su clave de conexión).</li>
@@ -8213,7 +8221,9 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         try { await B.uploadCloud({ withEmail: false }); toast('Copia subida a Google Drive'); UI.render(); }
         catch (err) { await B.log('drive', false, err.message); toast(err.message, 'err', 5000); e.target.disabled = false; }
       };
-      $('#disc', main).onclick = async () => { if (await confirm({ title: 'Desconectar Google', message: 'Dejará de subirse la copia automática a Drive y de enviarse los correos solos.', ok: 'Desconectar', danger: true })) save({ scriptUrl: '' }); };
+      if ($('#disc', main)) $('#disc', main).onclick = async () => { if (await confirm({ title: 'Desconectar Google', message: 'Dejará de subirse la copia automática a Drive y de enviarse los correos solos.', ok: 'Desconectar', danger: true })) save({ scriptUrl: '' }); };
+    } else if (!devMode()) {
+      bindDevUnlock(main);
     } else {
       if (!c.token) { const t = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 20); B.saveCfg({ ...B.cfg(), token: t }); $('#tk', main).value = t; }
       const copy = async (text, msg) => { try { await navigator.clipboard.writeText(text); toast(msg); } catch (e) { U.downloadBlob(new Blob([text], { type: 'text/plain' }), 'script-mi-financiera.txt'); } };
@@ -8269,6 +8279,46 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   }, { perm: '*' });
 
   /* ============================================================
+   * Área de desarrollador (protegida con la clave maestra)
+   * ============================================================ */
+  const devMode = () => { try { return sessionStorage.getItem('mf_dev') === '1'; } catch (e) { return false; } };
+  async function unlockDev(after) {
+    const code = await confirm({ title: 'Área de desarrollador', message: 'Escriba la clave maestra de soporte.', ok: 'Entrar', input: { type: 'password', placeholder: 'XXXX-XXXX-XXXX-XXXX-XXXX' } });
+    if (code === null) return false;
+    if (!(await Auth.isMaster(code))) { toast('Clave maestra incorrecta.', 'err'); return false; }
+    try { sessionStorage.setItem('mf_dev', '1'); } catch (e) { /* */ }
+    toast('Modo desarrollador activo hasta cerrar la app');
+    if (after) go(after); else UI.render();
+    return true;
+  }
+  const supportCard = (what) => `<div class="card"><h3>${icon('settings')} Configuración técnica</h3><p class="small muted">${what} la configura el soporte técnico de la aplicación. Si la necesita, contacte a su proveedor.</p>
+    <button class="btn ghost block" data-devunlock>${icon('key')} Soy el técnico (clave maestra)</button></div>`;
+  function bindDevUnlock(el) { $$('[data-devunlock]', el).forEach((b) => (b.onclick = () => unlockDev())); }
+
+  UI.route('/dev', () => {
+    if (!devMode()) { page({ title: 'Área de desarrollador', back: '/mas', body: supportCard('Esta sección') }); bindDevUnlock($('#app')); return; }
+    const resets = (DB.meta('masterResets') || []).slice(-10).reverse();
+    const logs = (DB.meta('backupLog') || []).slice(-10).reverse();
+    const main = page({ title: 'Área de desarrollador', sub: 'Solo soporte técnico', back: '/mas', body: `
+      <div class="banner t-warning">${icon('key')}<div><b>Modo desarrollador activo.</b> Se cierra al cerrar la app o al tocar "Salir".</div></div>
+      <div class="list">
+        <div class="menu-item" data-go="/nube"><span class="dot t-info">${icon('upload')}</span><div class="grow">Nube (Firebase)<small>${Cloud.on ? 'Activa · proyecto ' + esc((Cloud.config() || {}).projectId || '') : 'No activada · pegar configuración de Firebase'}</small></div></div>
+        <div class="menu-item" data-go="/respaldo"><span class="dot t-success">${icon('shield')}</span><div class="grow">Drive y correo automáticos<small>${root.Backup.cloudReady() ? 'Script conectado' : 'Script de Google no configurado'}</small></div></div>
+        <div class="menu-item" data-go="/usuarios"><span class="dot t-primary">${icon('users')}</span><div class="grow">Usuarios y permisos<small>${DB.all('users').length} usuario(s)</small></div></div>
+      </div>
+      <div class="card"><h3>Este dispositivo</h3><dl class="kv">
+        <dt>Modo</dt><dd>${Cloud.on ? 'Nube' : 'Solo este dispositivo'}</dd>
+        <dt>Letra de dispositivo</dt><dd>${esc(Cloud.deviceCode() || '—')}</dd>
+        <dt>App nativa (APK)</dt><dd>${U.isNative ? 'Sí' : 'No (navegador)'}</dd>
+        <dt>Usuario actual</dt><dd>${esc(Auth.current.email || Auth.current.username || '')} · ${esc(Auth.current.role)}</dd>
+        <dt>Registros</dt><dd>${DB.all('clients').length} clientes · ${DB.all('loans').length} préstamos · ${DB.all('payments').length} pagos</dd></dl></div>
+      <div class="card"><h3>Usos de la clave maestra</h3>${resets.length ? resets.map((r) => `<div class="small">${U.dateTime(r.at)} · usuario ${esc(r.user)}</div>`).join('') : '<div class="small muted">Ninguno.</div>'}</div>
+      <div class="card"><h3>Últimos respaldos</h3>${logs.length ? logs.map((l) => `<div class="small">${U.dateTime(l.at)} · ${esc(l.dest)} · ${l.ok ? 'OK' : 'Error'}${l.detail ? ' · ' + esc(l.detail) : ''}</div>`).join('') : '<div class="small muted">Ninguno.</div>'}</div>
+      <button class="btn danger block" id="devout">${icon('logout')} Salir del modo desarrollador</button>` });
+    $('#devout', main).onclick = () => { try { sessionStorage.removeItem('mf_dev'); } catch (e) { /* */ } toast('Modo desarrollador cerrado'); go('/mas'); };
+  }, { perm: '*' });
+
+  /* ============================================================
    * Sincronización en la nube
    * ============================================================ */
   UI.route('/nube', () => {
@@ -8292,16 +8342,20 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         <div class="list">
           <div class="menu-item" data-go="/usuarios"><span class="dot t-info">${icon('users')}</span><div class="grow">Usuarios y permisos<small>Agregar cobradores, empleados y otros dispositivos</small></div></div>
         </div>
-        <button class="btn danger block" id="disc">${icon('logout')} Desconectar este dispositivo</button>` });
+        ${devMode() ? `<button class="btn danger block" id="disc">${icon('logout')} Desconectar este dispositivo</button>` : ''}` });
       $('#cp', main).onclick = async () => { try { await navigator.clipboard.writeText(code); toast('Código copiado'); } catch (e) { $('#code', main).select(); toast('Seleccione y copie el código', 'err'); } };
       $('#sh', main).onclick = () => Docs.share(new Blob([code], { type: 'text/plain' }), 'codigo-conexion.txt', { text: code });
-      $('#disc', main).onclick = async () => {
+      if ($('#disc', main)) $('#disc', main).onclick = async () => {
         if (!(await confirm({ title: 'Desconectar este dispositivo', message: 'Este dispositivo dejará de sincronizar. Los datos siguen en la nube y en los demás dispositivos.', ok: 'Desconectar', danger: true }))) return;
         await Cloud.disconnectDevice(); location.hash = ''; location.reload();
       };
       return;
     }
-    const main = page({ title: 'Sincronización en la nube', back: '/mas', body: `
+    if (!devMode()) {
+      page({ title: 'Sincronización en la nube', back: '/mas', body: `<div class="banner t-info">${icon('info')}<div>Con la nube, la PC, su teléfono y los de sus cobradores ven <b>los mismos datos al mismo tiempo</b>. Por ahora esta app guarda los datos solo en este dispositivo.</div></div>${supportCard('La sincronización en la nube')}` });
+      bindDevUnlock($('#app')); return;
+    }
+    const main = page({ title: 'Sincronización en la nube', sub: 'Área de desarrollador', back: '/dev', body: `
       <div class="banner t-info">${icon('info')}<div>Con la nube, la PC, su teléfono y los de sus cobradores ven <b>los mismos datos al mismo tiempo</b>. Si no hay señal, los cambios se guardan y se suben solos después.</div></div>
       <div class="card"><h3>Paso 1 · Cree su proyecto en Firebase</h3>
         <p class="small muted mb0">Siga la guía que le envié (crear proyecto, activar Authentication con correo y contraseña, crear Firestore y pegar las reglas de seguridad). Al final, Firebase le muestra un bloque que empieza con <b>const firebaseConfig = {</b>. Cópielo completo.</p></div>
