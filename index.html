@@ -283,6 +283,117 @@ details.sec .field { margin-bottom: 10px; }
   .fab { right: max(24px, calc(50% - 500px)); }
   .quick { max-width: 640px; }
 }
+
+/* ================= Rediseño visual v2 ================= */
+:root {
+  --bg: #f2f4f8; --surface: #ffffff; --surface-2: #f6f7fb; --border: #e6e9f0;
+  --text: #0f172a; --muted: #64748b; --primary: #2952e3; --primary-2: #1d3fb8; --primary-soft: #eaf0ff;
+  --accent: #10b981; --radius: 18px;
+  --shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 20px rgba(15,23,42,.05);
+  --grad: linear-gradient(135deg, #2952e3 0%, #5b3fd6 55%, #7c3aed 100%);
+}
+[data-theme="dark"] {
+  --bg: #090d1a; --surface: #111729; --surface-2: #161d33; --border: #222b45;
+  --text: #e9edf7; --muted: #94a0bd; --primary: #6c93ff; --primary-2: #9bb5ff; --primary-soft: #1a2650;
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.28);
+  --grad: linear-gradient(135deg, #2746c2 0%, #4a33b5 55%, #6427c4 100%);
+}
+body { font-family: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: -.005em;
+  font-variant-numeric: tabular-nums; }
+.topbar { padding-top: calc(14px + env(safe-area-inset-top, 0px)); padding-bottom: 10px; }
+.topbar h1 { font-size: 20px; letter-spacing: -.02em; }
+.brand-logo { background: var(--grad); border-radius: 12px; box-shadow: 0 4px 12px rgba(41,82,227,.3); }
+.icon-btn { border-radius: 13px; box-shadow: var(--shadow); }
+
+/* Tarjeta principal */
+.hero { background: var(--grad); border-radius: 24px; padding: 22px 20px; box-shadow: 0 14px 34px -10px rgba(76,58,214,.55); }
+.hero::before { content: ""; position: absolute; left: -30px; bottom: -60px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,.07); }
+.hero .big { font-size: 34px; margin: 4px 0 16px; }
+.hero .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; position: relative; z-index: 1; }
+.hero .row > div { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 9px 11px; backdrop-filter: blur(4px); }
+.hero .row .label { font-size: 11.5px; }
+.hero.hero-sm .big { font-size: 28px; margin-bottom: 12px; }
+.hero.hero-bad { background: linear-gradient(135deg, #b42318, #e04f39); box-shadow: 0 14px 30px -10px rgba(217,45,32,.5); }
+
+/* Accesos rápidos */
+.quick { gap: 10px; }
+.quick button { border-radius: 18px; padding: 14px 4px 12px; transition: transform .1s, box-shadow .2s; }
+.quick button:active { transform: scale(.96); }
+.quick button .dot { width: 44px; height: 44px; border-radius: 14px; }
+
+/* Tarjetas, estadísticas y listas */
+.card { border-radius: var(--radius); }
+.card h3 { font-size: 15.5px; display: flex; align-items: center; gap: 8px; }
+.card h3 svg { color: var(--primary); }
+.stats { gap: 12px; }
+.stat { border-radius: 16px; padding: 14px; transition: transform .1s; }
+.stat.clickable:active { transform: scale(.98); }
+.stat .k .dot { width: 30px; height: 30px; border-radius: 10px; }
+.stat .v { font-size: 19px; letter-spacing: -.02em; margin-top: 8px; }
+.section-title { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--text); margin: 22px 4px 10px; }
+.list { border-radius: var(--radius); }
+.item { padding: 14px 16px; }
+.item.sel { background: var(--primary-soft); }
+.chip { padding: 4px 10px; }
+.tab { padding: 9px 15px; }
+.tab.active { background: var(--grad); border-color: transparent; box-shadow: 0 4px 12px rgba(41,82,227,.3); }
+.seg label:has(input:checked) { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+[data-theme="dark"] .seg label:has(input:checked) { background: var(--primary-soft); }
+input.in, select.in, textarea.in { border-radius: 14px; background: var(--surface-2); }
+.in:focus { background: var(--surface); }
+
+/* Botones */
+.btn { border-radius: 15px; }
+.btn:not(.secondary):not(.ghost):not(.danger):not(.success):not(.wa) { background: var(--grad); box-shadow: 0 6px 16px -6px rgba(76,58,214,.6); }
+.fab { background: var(--grad); border-radius: 20px; box-shadow: 0 12px 26px -8px rgba(76,58,214,.65); }
+
+/* Barra inferior flotante */
+.bottom-nav { left: 10px; right: 10px; bottom: calc(10px + var(--safe-b)); padding-bottom: 0; border: 1px solid var(--border); border-radius: 22px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 10px 30px -8px rgba(15,23,42,.22); }
+.bottom-nav .inner { height: 62px; }
+.bottom-nav a { border-radius: 16px; margin: 6px 2px; transition: background .15s, color .15s; }
+.bottom-nav a.active { background: var(--primary-soft); }
+.bottom-nav a.active::before { display: none; }
+.bottom-nav .badge-dot { top: 4px; }
+.fab { bottom: calc(var(--nav-h) + 26px + var(--safe-b)); }
+
+/* Herramientas */
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tool { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px;
+  cursor: pointer; box-shadow: var(--shadow); transition: transform .1s; }
+.tool:active { transform: scale(.97); }
+.tool .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 4px; }
+.tool b { font-size: 15px; } .tool small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.tool:last-child:nth-child(odd) { grid-column: span 2; }
+.calc-screen { background: var(--surface-2); border-radius: 16px; padding: 12px 14px; text-align: right; margin-bottom: 12px; border: 1px solid var(--border); }
+.calc-screen input { width: 100%; border: 0; background: none; outline: none; text-align: right; font-size: 32px; font-weight: 750; letter-spacing: -.02em; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.calc-keys button { height: 58px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); font-size: 21px; font-weight: 650; cursor: pointer; }
+.calc-keys button:active { transform: scale(.95); background: var(--surface-2); }
+.calc-keys button.op { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
+.calc-keys button[data-k="="] { background: var(--grad); color: #fff; }
+.calc-keys button.clr { color: var(--danger); }
+.cash-row { display: grid; grid-template-columns: 112px 14px 1fr 96px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.cash-row .chip { justify-content: center; font-size: 12.5px; padding: 7px 4px; }
+.cash-row .in { min-height: 44px; text-align: center; }
+.cash-row b { text-align: right; font-size: 14px; }
+
+/* PC: menú lateral */
+@media (min-width: 1024px) {
+  body { padding-left: 240px; }
+  .bottom-nav { left: 16px; top: 16px; bottom: 16px; right: auto; width: 208px; border-radius: 24px; display: block; padding: 18px 12px; }
+  .bottom-nav::before { content: "Mi Financiera"; display: block; font-weight: 800; font-size: 17px; letter-spacing: -.02em; padding: 4px 12px 16px; }
+  .bottom-nav .inner { flex-direction: column; height: auto; gap: 4px; }
+  .bottom-nav a { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px 14px; font-size: 14.5px; margin: 0; }
+  .bottom-nav .badge-dot { position: static; margin-left: auto; }
+  main.view { padding-bottom: 60px; }
+  .fab { bottom: 28px; right: max(28px, calc(50% - 400px)); }
+  .tool-grid { grid-template-columns: repeat(3, 1fr); }
+  .tool:last-child:nth-child(odd) { grid-column: auto; }
+  .hero .big { font-size: 40px; }
+}
+.seg input:checked + span { color: inherit; }
+.chart-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 34px 10px; background: var(--surface-2); border-radius: 14px; border: 1px dashed var(--border); }
 </style>
 </head>
 <body>
@@ -5347,6 +5458,10 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   /* Iconos (trazos estilo línea) */
   const P = {
+    calc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/>',
+    percent: '<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+    tools: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
+    scale: '<path d="M12 3v18M7 21h10M5 7h14"/><path d="m5 7-3 7a3.5 3.5 0 0 0 6 0Z"/><path d="m19 7-3 7a3.5 3.5 0 0 0 6 0Z"/>',
     home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
     users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.6c2.6.2 4.4 1.9 5 4.9"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.2 4.1-6.5 8-6.5s7 2.3 8 6.5"/>',
@@ -5410,6 +5525,46 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     try { await SH.share({ title: safe, text: text || '', files: [uri], dialogTitle: 'Guardar o compartir' }); return 'shared'; }
     catch (e) { if (/cancel/i.test(String(e && e.message))) return 'cancelled'; throw e; }
   }
+  /* ---------- Números y fechas en letras (para contratos) ---------- */
+  const UNI = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE',
+    'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE', 'VEINTIUNO', 'VEINTIDÓS', 'VEINTITRÉS', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISÉIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+  const DEC = ['', '', '', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+  const CEN = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+  function words999(n) {
+    if (n === 0) return '';
+    if (n === 100) return 'CIEN';
+    const c = Math.floor(n / 100), r = n % 100;
+    let t = '';
+    if (r < 30) t = UNI[r];
+    else { const d = Math.floor(r / 10), u = r % 10; t = DEC[d] + (u ? ' Y ' + UNI[u] : ''); }
+    return [CEN[c], t].filter(Boolean).join(' ');
+  }
+  function numberToWords(n) {
+    n = Math.floor(Math.abs(n));
+    if (n === 0) return 'CERO';
+    const parts = [];
+    const millones = Math.floor(n / 1e6), miles = Math.floor((n % 1e6) / 1000), resto = n % 1000;
+    if (millones) parts.push(millones === 1 ? 'UN MILLÓN' : numberToWords(millones).replace(/UNO$/, 'UN') + ' MILLONES');
+    if (miles) parts.push(miles === 1 ? 'MIL' : words999(miles).replace(/VEINTIUNO$/, 'VEINTIÚN').replace(/UNO$/, 'UN') + ' MIL');
+    if (resto) parts.push(words999(resto));
+    return parts.join(' ');
+  }
+  const CUR_WORDS = { 'RD$': ['PESO DOMINICANO', 'PESOS DOMINICANOS'], 'US$': ['DÓLAR ESTADOUNIDENSE', 'DÓLARES ESTADOUNIDENSES'], '€': ['EURO', 'EUROS'] };
+  /** 10000 → "DIEZ MIL PESOS DOMINICANOS CON 00/100 (RD$10,000.00)" */
+  function moneyWords(n) {
+    const v = F.r2(n || 0), ent = Math.floor(v), cents = Math.round((v - ent) * 100);
+    const [one, many] = CUR_WORDS[cur()] || ['UNIDAD', 'UNIDADES'];
+    const apoc = (t) => t.replace(/VEINTIUNO$/, 'VEINTIÚN').replace(/UNO$/, 'UN').replace(/VEINTIUN MIL/, 'VEINTIÚN MIL');
+    const w = ent === 1 ? 'UN ' + one : apoc(numberToWords(ent)) + ((ent % 1e6 === 0 && ent >= 1e6) ? ' DE ' : ' ') + many;
+    return `${w} CON ${String(cents).padStart(2, '0')}/100 (${money(v)})`;
+  }
+  /** "a los veintiséis (26) días del mes de noviembre del año dos mil veintiséis (2026)" */
+  function dateWords(iso) {
+    const d = F.parseDate(iso), day = d.getDate(), y = d.getFullYear();
+    const dw = day === 1 ? 'primer' : numberToWords(day).toLowerCase().replace(/veintiuno$/, 'veintiún').replace(/ y uno$/, ' y un');
+    return `${day === 1 ? 'al' : 'a los'} ${dw} (${day}) día${day === 1 ? '' : 's'} del mes de ${MONTHS[d.getMonth()]} del año ${numberToWords(y).toLowerCase()} (${y})`;
+  }
+
   function downloadBlob(blob, filename) {
     if (isNative) return nativeShare(blob, filename).catch((e) => root.UI && root.UI.toast(e.message || 'Error al compartir', 'err'));
     if (dlApi) {
@@ -5425,7 +5580,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   root.U = {
     CURRENCIES, company, cur, money, moneyShort, num, date, dateLong, dateShort, dateTime, esc, initials, normDigits, norm,
-    isPreview, isNative, nativeShare, formatCedula, formatPhone, waNumber, isEmail, readImage, icon, downloadBlob, MONTHS, MONTHS_S, DAYS
+    isPreview, isNative, nativeShare, numberToWords, moneyWords, dateWords, formatCedula, formatPhone, waNumber, isEmail, readImage, icon, downloadBlob, MONTHS, MONTHS_S, DAYS
   };
 })(this);
 </script>
@@ -5537,70 +5692,141 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     doc.setDrawColor(170, 170, 170); doc.setLineDashPattern([1, 1], 0); doc.line(x1, y, x2, y); doc.setLineDashPattern([], 0);
   }
 
-  /* ---------------- Contrato de préstamo ---------------- */
+  /* ---------------- Contrato de préstamo (formato legal) ---------------- */
+  const PERIOD = { diario: ['día', 'diarias', 'diaria'], semanal: ['semana', 'semanales', 'semanal'], quincenal: ['quincena', 'quincenales', 'quincenal'], mensual: ['mes', 'mensuales', 'mensual'] };
+  const ORD = ['PRIMERO', 'SEGUNDO', 'TERCERO', 'CUARTO', 'QUINTO', 'SEXTO', 'SÉPTIMO', 'OCTAVO', 'NOVENO', 'DÉCIMO', 'DÉCIMO PRIMERO', 'DÉCIMO SEGUNDO', 'DÉCIMO TERCERO', 'DÉCIMO CUARTO', 'DÉCIMO QUINTO', 'DÉCIMO SEXTO', 'DÉCIMO SÉPTIMO', 'DÉCIMO OCTAVO', 'DÉCIMO NOVENO', 'VIGÉSIMO'];
+  const BLANK = '____________________';
+
+  function interestClause(L) {
+    const F = root.Finance, per = PERIOD[L.frequency][0], m = L.method, pct = L.rateType === 'porcentual';
+    const r = pct ? `${U.numberToWords(L.rate).toLowerCase()} por ciento (${L.rate}%)` : U.moneyWords(L.rate);
+    const total = U.moneyWords(L.totalInterest);
+    if (m === 'simple') return `El capital prestado devengará un interés ${pct ? 'de ' + r : 'fijo de ' + r} por cada ${per}, sobre el capital original, o sea ${U.money(L.schedule[0].interest)} por cuota, para un total de intereses de ${total}.`;
+    if (m === 'decreciente') return `El capital prestado devengará un interés de ${r} por cada ${per}, sobre el capital pendiente; cada cuota abona ${U.money(L.schedule[0].capital)} a capital, por lo que las cuotas van bajando. Total de intereses: ${total}.`;
+    if (m === 'vencimiento') return `El capital prestado devengará un interés ${pct ? 'de ' + r : 'fijo de ' + r} por cada ${per}, y el capital completo se paga en la última cuota. Todo abono a capital reduce los intereses siguientes en la misma proporción. Total de intereses: ${total}.`;
+    if (m === 'saldo') return `El capital prestado devengará un interés de ${r} por cada ${per}, sobre saldo pendiente, en cuotas fijas de capital e interés. Total de intereses: ${total}.`;
+    return `Se acuerda un interés único ${pct ? 'de ' + r + ' sobre el capital' : 'de ' + r} por todo el préstamo, igual a ${total}, repartido en partes iguales entre las cuotas.`;
+  }
+
   function contractPDF(d) {
-    const JsPDF = jsPDFCtor(), c = U.company();
+    const JsPDF = jsPDFCtor(), c = U.company(), k = c.contract || {};
+    const L = d.loan, cl = d.client, g = L.guarantor && L.guarantor.name ? L.guarantor : null;
+    const F = root.Finance, schedule = F.withBalance(L.principal, L.schedule);
     const doc = new JsPDF({ unit: 'mm', format: 'letter' });
-    const W = doc.internal.pageSize.getWidth();
-    let y = letterHeader(doc, 'CONTRATO DE PRÉSTAMO', `No. ${d.loan.number} · ${U.date(d.loan.disbursedDate)}`);
-    doc.setTextColor(20, 24, 38); doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-    const cl = d.client, L = d.loan;
-    const p1 = `Entre ${c.name || 'la empresa'}, representada por ${c.owner || 'su administrador'}, en lo adelante "EL PRESTAMISTA", y ${cl.name}, portador(a) del documento de identidad No. ${cl.cedula}, domiciliado(a) en ${cl.address || '—'}, teléfono ${U.formatPhone(cl.phone)}, en lo adelante "EL DEUDOR", se ha convenido el siguiente préstamo:`;
-    const t1 = doc.splitTextToSize(p1, W - 30); doc.text(t1, 15, y); y += t1.length * 5 + 3;
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), ML = 22, MR = W - 22, TW = MR - ML;
+    const city = k.city || '__________________';
+    let y = 18;
+    const LHF = 1.25, lh = (size) => size * 0.3528 * LHF; // misma altura de línea para texto justificado y última línea
+    const ensure = (h) => { if (y + h > H - 26) { doc.addPage(); y = 24; } };
+    function para(text, opt = {}) {
+      const size = opt.size || 10.5;
+      doc.setFont('times', opt.bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(20, 20, 20);
+      const lines = doc.splitTextToSize(text, TW);
+      let i = 0;
+      while (i < lines.length) {
+        ensure(lh(size) + 1);
+        const fit = Math.max(1, Math.floor((H - 26 - y) / lh(size)));
+        const chunk = lines.slice(i, i + fit);
+        const isLast = i + chunk.length >= lines.length;
+        if (opt.align === 'center') chunk.forEach((t, j) => doc.text(t, W / 2, y + j * lh(size), { align: 'center' }));
+        else {
+          // justificado, salvo la última línea del párrafo
+          const body = isLast ? chunk.slice(0, -1) : chunk;
+          if (body.length) doc.text(body, ML, y, { align: 'justify', maxWidth: TW, lineHeightFactor: LHF });
+          if (isLast) doc.text(chunk[chunk.length - 1], ML, y + (chunk.length - 1) * lh(size));
+        }
+        y += chunk.length * lh(size); i += chunk.length;
+      }
+      y += opt.gap === undefined ? 2.6 : opt.gap;
+    }
+    let n = 0;
+    const clause = (title, text) => { ensure(12); para(`${ORD[n++]}: ${title}.`, { bold: true, gap: 0.6, size: 10.5 }); para(text, { gap: 2.2 }); };
 
-    doc.autoTable({
-      startY: y, theme: 'grid', margin: { left: 15, right: 15 }, styles: { fontSize: 9.5, cellPadding: 2.2 },
-      headStyles: { fillColor: BRAND }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } },
-      head: [['Condición', 'Detalle']],
-      body: [
-        ['Capital prestado', U.money(L.principal)],
-        ['Tipo de préstamo', root.Finance.METHODS[L.method].label],
-        ['Tasa / monto de interés', L.rateType === 'porcentual' ? `${L.rate}% ${L.method === 'fijo' ? 'sobre el capital' : 'por cuota'}` : `${U.money(L.rate)} ${L.method === 'fijo' ? 'total' : 'por cuota'}`],
-        ['Interés total', U.money(L.totalInterest)],
-        ['Total a pagar', U.money(L.total)],
-        ['Frecuencia de pago', root.Finance.FREQUENCIES[L.frequency].label],
-        ['Cantidad de cuotas', String(L.installments)],
-        ['Monto de cada cuota', U.money(L.installmentAmount)],
-        ['Fecha de entrega', U.date(L.disbursedDate)],
-        ['Fecha del primer pago', U.date(L.firstDate)],
-        ['Fecha de vencimiento', U.date(L.dueDate)]
-      ]
-    });
-    y = doc.lastAutoTable.finalY + 6;
-    doc.setFontSize(9); doc.setTextColor(90, 100, 120);
-    const ft = doc.splitTextToSize(root.Finance.METHODS[L.method].help + ' Cálculo: ' + L.formula, W - 30); doc.text(ft, 15, y); y += ft.length * 4.4 + 4;
+    const personal = k.lenderType !== 'empresa';
+    const lenderName = k.lenderName || c.owner || '';
+    const lenderAddr = k.lenderAddress || c.address || BLANK;
+    const cuotasW = (x) => `${U.numberToWords(x).toLowerCase().replace(/uno$/, 'una')} (${x})`;
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20, 24, 38); doc.text('Calendario de pagos', 15, y); y += 2;
+    // Encabezado
+    if (!personal) {
+      if (c.logo) { try { doc.addImage(c.logo, imgFormat(c.logo), ML, y - 4, 16, 16); } catch (e) { /* */ } }
+      doc.setFont('times', 'bold'); doc.setFontSize(12); doc.text(c.name || '', W / 2, y + 1, { align: 'center' });
+      doc.setFont('times', 'normal'); doc.setFontSize(8.5); doc.setTextColor(80, 80, 80);
+      doc.text([c.rnc ? 'RNC ' + c.rnc : '', c.address || ''].filter(Boolean), W / 2, y + 5.5, { align: 'center' });
+      y += 13; doc.setDrawColor(40, 40, 40); doc.setLineWidth(0.4); doc.line(ML, y, MR, y); doc.setLineWidth(0.2); y += 8;
+    } else y += 4;
+    para(personal ? 'CONTRATO DE PRÉSTAMO PERSONAL' : 'CONTRATO DE PRÉSTAMO', { bold: true, size: 14, align: 'center', gap: 0.5 });
+    para(`No. ${L.number}`, { size: 10, align: 'center', gap: 5 });
+
+    // Partes
+    const acreedor = personal
+      ? `${lenderName.toUpperCase() || BLANK}, ${k.ownerNationality || 'dominicano(a)'}, mayor de edad, cédula No. ${k.ownerCedula || BLANK}, domiciliado(a) en ${lenderAddr}`
+      : `${(c.name || '').toUpperCase()}${c.rnc ? ', RNC No. ' + c.rnc : ''}, con domicilio en ${c.address || BLANK}, representada por ${lenderName || BLANK}, cédula No. ${k.ownerCedula || BLANK}`;
+    para(`Entre ${acreedor}, en lo adelante EL ACREEDOR; y ${cl.name.toUpperCase()}, mayor de edad, cédula No. ${cl.cedula}, domiciliado(a) en ${cl.address || BLANK}, teléfono ${U.formatPhone(cl.phone)}, en lo adelante EL DEUDOR${g ? `; y ${g.name.toUpperCase()}, mayor de edad, cédula No. ${g.cedula || BLANK}, domiciliado(a) en ${g.address || BLANK}, en lo adelante EL FIADOR` : ''}; se ha convenido lo siguiente:`, { gap: 4 });
+
+    const per = PERIOD[L.frequency], cuotas = L.installments;
+    const sameAmount = schedule.every((s) => Math.abs(s.amount - schedule[0].amount) < 0.02);
+    clause('MONTO', `EL ACREEDOR presta a EL DEUDOR la suma de ${U.moneyWords(L.principal)}, que EL DEUDOR declara haber recibido en fecha ${U.date(L.disbursedDate)}. Este documento sirve de recibo por dicha suma.`);
+    clause('INTERESES', interestClause(L));
+    clause('FORMA DE PAGO', `EL DEUDOR pagará un total de ${U.moneyWords(L.total)} en ${cuotasW(cuotas)} cuotas ${per[1]}${sameAmount ? ' de ' + U.money(schedule[0].amount) : ''}, desde el ${U.date(L.firstDate)} hasta el ${U.date(L.dueDate)}${L.frequency === 'diario' && L.skipSundays ? ' (sin domingos)' : ''}, según el calendario anexo. Cada pago se probará con el recibo de EL ACREEDOR. EL DEUDOR puede adelantar pagos en cualquier momento. Si EL ACREEDOR lo acepta, EL DEUDOR podrá pagar solo el interés de una cuota; en ese caso el capital no baja y el plazo se extiende una ${per[0]}.`.replace('una mes', 'un mes').replace('una día', 'un día'));
+    const late = Number(k.lateCuotas) || 3;
+    clause('ATRASOS', `${Number(k.moraPct) > 0 ? `Cada cuota atrasada pagará un recargo de ${k.moraPct}% por cada ${per[0]} de atraso. ` : ''}Si EL DEUDOR deja de pagar ${cuotasW(late)} cuotas, EL ACREEDOR podrá exigir de inmediato todo lo adeudado, y los gastos de cobro correrán por cuenta de EL DEUDOR.`);
+    if (g) clause('FIADOR', 'EL FIADOR garantiza solidariamente el pago de todo lo adeudado por EL DEUDOR y podrá ser cobrado directamente, sin necesidad de perseguir primero a EL DEUDOR.');
+    if (L.notes) clause('CONDICIONES PARTICULARES', L.notes);
+    if (k.extraClauses) String(k.extraClauses).split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).forEach((t) => clause('CLÁUSULA ADICIONAL', t));
+    clause('LEY APLICABLE', 'Para todo lo no previsto en este contrato, las partes se someten a las leyes de la República Dominicana.');
+
+    ensure(14);
+    para(`Hecho y firmado en ${g ? 'tres (3)' : 'dos (2)'} originales, en ${city}, República Dominicana, ${U.dateWords(L.disbursedDate)}.`, { gap: 6 });
+
+    // Firmas
+    const sig = (x, w, title, name, ced) => {
+      doc.setDrawColor(30, 30, 30); doc.setLineWidth(0.3); doc.line(x, y, x + w, y);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.text(title, x + w / 2, y + 4.5, { align: 'center' });
+      doc.setFont('times', 'normal'); doc.setFontSize(9.5);
+      const nl = doc.splitTextToSize(name, w);
+      nl.forEach((t, j) => doc.text(t, x + w / 2, y + 9 + j * 4.2, { align: 'center' }));
+      if (ced) doc.text('Cédula: ' + ced, x + w / 2, y + 9 + nl.length * 4.2 + 0.5, { align: 'center' });
+    };
+    ensure(34); y += 12;
+    sig(ML, 70, 'EL ACREEDOR', personal ? lenderName : `${lenderName} (por ${c.name || ''})`, k.ownerCedula || '');
+    sig(MR - 70, 70, 'EL DEUDOR', cl.name, cl.cedula);
+    y += 20;
+    if (g || k.witnesses) {
+      ensure(30); y += 10;
+      if (g) sig(ML, 70, 'EL FIADOR', g.name, g.cedula || '');
+      if (k.witnesses) sig(MR - 70, 70, 'TESTIGO', 'Nombre: ____________________', '____________________');
+      y += 20;
+    }
+    if (k.notary) {
+      const names = [lenderName, cl.name, g && g.name].filter(Boolean).map((x) => x.toUpperCase());
+      ensure(40); y += 4;
+      para(`Yo, ____________________________, Notario Público de los del Número para ____________________, CERTIFICO Y DOY FE: que las firmas que anteceden fueron puestas libre y voluntariamente en mi presencia por ${names.join(', ').replace(/, ([^,]*)$/, ' y $1')}, quienes declararon que son las que acostumbran usar. En ____________________, a los ____ días del mes de ______________ del año ________.`, { size: 9.5 });
+      ensure(16); y += 10; doc.line(W / 2 - 35, y, W / 2 + 35, y);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.text('NOTARIO PÚBLICO', W / 2, y + 4.5, { align: 'center' }); y += 8;
+    }
+
+    // Anexo: calendario de pagos (sigue en la misma página si cabe)
+    if (y + 40 > H - 26) { doc.addPage(); y = 24; } else y += 8;
+    para(`ANEXO: CALENDARIO DE PAGOS (Contrato No. ${L.number})`, { bold: true, size: 10.5, align: 'center', gap: 2 });
     doc.autoTable({
-      startY: y + 2, margin: { left: 15, right: 15 }, styles: { fontSize: 8.8, cellPadding: 1.8 }, headStyles: { fillColor: BRAND },
-      head: [['#', 'Fecha', 'Capital', 'Interés', 'Cuota', 'Balance']],
-      body: root.Finance.withBalance(L.principal, L.schedule).map((s) => [s.n, U.date(s.date), U.num(s.capital), U.num(s.interest), U.num(s.amount), U.num(s.balance)]),
-      foot: [['', 'Total', U.num(L.principal), U.num(L.totalInterest), U.num(L.total), '']],
-      footStyles: { fillColor: [232, 238, 252], textColor: [20, 24, 38] },
-      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } }
+      startY: y, theme: 'grid', margin: { left: ML, right: W - MR, bottom: 24 }, styles: { font: 'times', fontSize: 9, cellPadding: 1.2 },
+      headStyles: { fillColor: [235, 235, 235], textColor: [20, 20, 20], fontStyle: 'bold' },
+      head: [['No.', 'Fecha', 'Capital', 'Interés', 'Cuota', 'Balance']],
+      body: schedule.map((s) => [s.n, U.date(s.date), U.num(s.capital), U.num(s.interest), U.num(s.amount), U.num(s.balance)]),
+      foot: [['', 'TOTALES', U.num(L.principal), U.num(L.totalInterest), U.num(L.total), '']],
+      footStyles: { fillColor: [235, 235, 235], textColor: [20, 20, 20], fontStyle: 'bold' },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } },
+      didParseCell: (cell) => { if (cell.section !== 'body' && cell.column.index >= 2) cell.cell.styles.halign = 'right'; }
     });
-    y = doc.lastAutoTable.finalY + 8;
-    const clauses = [
-      'PRIMERO: EL DEUDOR reconoce haber recibido conforme la suma de capital indicada y se compromete a pagarla, junto con los intereses pactados, en las fechas del calendario anterior.',
-      'SEGUNDO: Todo pago se aplica primero a los intereses y luego al capital de la cuota más antigua pendiente.',
-      'TERCERO: El atraso en el pago de una o más cuotas faculta a EL PRESTAMISTA a requerir el pago del saldo pendiente.',
-      'CUARTO: EL DEUDOR podrá realizar pagos anticipados, que se aplicarán a las cuotas pendientes en orden.'
-    ];
-    if (L.notes) clauses.push('OBSERVACIONES: ' + L.notes);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.3); doc.setTextColor(20, 24, 38);
-    const H = doc.internal.pageSize.getHeight();
-    clauses.forEach((cl2) => {
-      const t = doc.splitTextToSize(cl2, W - 30);
-      if (y + t.length * 4.6 > H - 50) { doc.addPage(); y = 20; }
-      doc.text(t, 15, y); y += t.length * 4.6 + 2;
-    });
-    if (y > H - 45) { doc.addPage(); y = 30; }
-    y += 22;
-    doc.setDrawColor(120, 120, 120); doc.line(20, y, 90, y); doc.line(W - 90, y, W - 20, y);
-    doc.setFontSize(9); doc.text(c.owner || 'EL PRESTAMISTA', 55, y + 5, { align: 'center' }); doc.text(cl.name, W - 55, y + 5, { align: 'center' });
-    doc.setTextColor(100, 110, 130); doc.setFontSize(8);
-    doc.text('EL PRESTAMISTA', 55, y + 9, { align: 'center' }); doc.text(`EL DEUDOR · ${cl.cedula}`, W - 55, y + 9, { align: 'center' });
-    footer(doc);
+
+    // Pie de cada página
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i); doc.setFont('times', 'normal'); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.text(`Contrato No. ${L.number} · Página ${i} de ${pages}`, ML, H - 12);
+      doc.text(`Iniciales: Acreedor ____  Deudor ____${g ? '  Fiador ____' : ''}`, MR, H - 12, { align: 'right' });
+    }
     return doc;
   }
 
@@ -5857,6 +6083,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       id: DB.uid('l_'), number: 'P-' + DB.seqPrefix() + String(await DB.nextSeq('loan')).padStart(4, '0'), clientId: d.clientId, ...p,
       schedule: calc.schedule, totalInterest: calc.totalInterest, total: calc.total, installmentAmount: calc.installmentAmount,
       dueDate: calc.dueDate, formula: calc.formula, notes: (d.notes || '').trim(),
+      ...(d.gName && d.gName.trim() ? { guarantor: { name: d.gName.trim().replace(/\s+/g, ' '), cedula: U.formatCedula(d.gCedula || ''), phone: U.normDigits(d.gPhone || ''), address: (d.gAddress || '').trim() } } : {}),
       createdAt: new Date().toISOString(), createdBy: user ? user.name : ''
     };
     await DB.put('loans', loan); invalidate();
@@ -6808,6 +7035,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   function barChart({ labels, series, stacked = false, height = 190 }) {
     const W = 340, H = height, padL = 34, padB = 22, padT = 10, cw = W - padL - 6, ch = H - padB - padT;
     const totals = labels.map((_, i) => stacked ? series.reduce((s, x) => s + (x.values[i] || 0), 0) : Math.max(...series.map((x) => x.values[i] || 0)));
+    if (!totals.some((t) => t > 0)) return '<div class="chart-empty">Todavía no hay datos para este gráfico.</div>';
     const max = niceMax(Math.max(...totals, 0));
     const bw = cw / labels.length;
     let g = ''; const T = ticksFor(max);
@@ -6838,6 +7066,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   }
   function lineChart({ labels, values, color = 'var(--primary)', height = 150 }) {
     const W = 340, H = height, padL = 34, padB = 22, padT = 10, cw = W - padL - 10, ch = H - padB - padT;
+    if (!values.some((v) => v > 0)) return '<div class="chart-empty">Todavía no hay cobros en estos días.</div>';
     const max = niceMax(Math.max(...values, 0)), n = values.length;
     const pts = values.map((v, i) => [padL + (n === 1 ? cw / 2 : (cw * i) / (n - 1)), padT + ch - (v / max) * ch]);
     let g = '';
@@ -6896,7 +7125,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   function page({ title, sub = '', back = null, body = '', fab = null, actions = '', nav = true, brand = false }) {
     const app = $('#app');
     const { path } = parseHash();
-    const navActive = (p) => (p === '/' ? path === '/' : path.startsWith(p) || (p === '/mas' && /^\/(gastos|reportes|ajustes|usuarios|respaldo|pagos)/.test(path)));
+    const navActive = (p) => (p === '/' ? path === '/' : path.startsWith(p) || (p === '/mas' && /^\/(gastos|reportes|ajustes|usuarios|respaldo|pagos|herramientas|seguridad|nube|dev|ayuda)/.test(path)));
     const lateCount = root.Auth.current ? root.S.overdueLoans().length : 0;
     app.innerHTML = `
       <header class="topbar">
@@ -6995,6 +7224,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           <div class="hint">PNG o JPG. Aparecerá en recibos, contratos y reportes.</div></div></div>
         <input type="file" id="logo-file" accept="image/*" hidden></div>
       ${field({ name: 'name', label: 'Nombre de la empresa', value: c.name || '', req: true, placeholder: 'Ej.: Inversiones Pérez' })}
+      ${field({ name: 'rnc', label: 'RNC (opcional)', value: c.rnc || '', placeholder: 'Ej.: 1-31-12345-6', hint: 'Aparece en contratos y documentos.' })}
       ${field({ name: 'owner', label: 'Propietario o administrador', value: c.owner || '', req: true })}
       ${field({ name: 'phone', label: 'Teléfono', type: 'tel', value: c.phone || '', req: true, placeholder: '809-000-0000', attrs: 'inputmode="tel"' })}
       ${field({ name: 'address', label: 'Dirección', value: c.address || '', req: true })}
@@ -7027,7 +7257,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     return e;
   }
   function companyFromForm(d, prev) {
-    return { ...(prev || {}), name: d.name.trim(), owner: d.owner.trim(), phone: U.normDigits(d.phone), address: d.address.trim(), email: (d.email || '').trim(),
+    return { ...(prev || {}), name: d.name.trim(), rnc: (d.rnc || '').trim(), owner: d.owner.trim(), phone: U.normDigits(d.phone), address: d.address.trim(), email: (d.email || '').trim(),
       currency: d.currency === 'otra' ? d.currencyOther.trim() : d.currency, extra: (d.extra || '').trim(), receiptNote: (d.receiptNote || '').trim(),
       logo: draftLogo !== null ? draftLogo : (prev ? prev.logo : '') };
   }
@@ -7210,7 +7440,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           ${can('clientes.editar') ? `<button data-go="/clientes/nuevo"><span class="dot t-primary">${icon('user')}</span>Nuevo cliente</button>` : ''}
           ${can('prestamos.crear') ? `<button data-go="/prestamos/nuevo"><span class="dot t-info">${icon('wallet')}</span>Nuevo préstamo</button>` : ''}
           <button data-go="/pagos/nuevo"><span class="dot t-success">${icon('cash')}</span>Registrar pago</button>
-          <button data-go="/cobros"><span class="dot t-warning">${icon('calendar')}</span>Cobros hoy</button>
+          <button data-go="/herramientas"><span class="dot t-warning">${icon('tools')}</span>Herramientas</button>
         </div>
         ${d.late ? `<div class="banner t-danger" data-go="/cobros?tab=atrasados" style="cursor:pointer">${icon('alert')}<div><b>${d.late} préstamo(s) atrasado(s)</b><br>${money(d.overdueAmount)} en cuotas vencidas. Toque para ver.</div></div>` : ''}
         ${U.isPreview ? `<div class="banner t-info">${icon('info')}<div><b>Vista de prueba.</b> Aquí los datos pueden borrarse. Para usarla en su negocio, instale el archivo de la app en su propio enlace (vea las instrucciones).</div></div>` : ''}
@@ -7488,18 +7718,23 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       body: `<form id="f" novalidate>
         <div class="card">
           ${field({ name: 'clientId', label: 'Cliente', req: true, value: q.cliente || '', options: [['', 'Seleccione un cliente…']].concat(clients.map((c) => [c.id, `${c.name} · ${c.cedula}`])) })}
-          ${field({ name: 'principal', label: `Cantidad prestada (${U.cur()})`, type: 'number', req: true, attrs: 'inputmode="decimal" min="1" step="0.01"', placeholder: '0.00' })}
+          ${field({ name: 'principal', label: `Cantidad prestada (${U.cur()})`, type: 'number', req: true, value: q.monto || '', attrs: 'inputmode="decimal" min="1" step="0.01"', placeholder: '0.00' })}
           <div class="field" data-f="rateType"><label>Tipo de interés</label>${seg('rateType', [['porcentual', 'Porcentual (%)'], ['monto', `Monto fijo (${U.cur()})`]], 'porcentual')}<div class="err"></div></div>
-          ${field({ name: 'method', label: 'Tipo de préstamo (cálculo de intereses)', req: true, value: 'simple', options: Object.entries(F.METHODS).map(([k, m]) => [k, m.label]) })}
+          ${field({ name: 'method', label: 'Tipo de préstamo (cálculo de intereses)', req: true, value: F.METHODS[q.metodo] ? q.metodo : 'simple', options: Object.entries(F.METHODS).map(([k, m]) => [k, m.label]) })}
           <div class="formula" style="margin:-6px 0 14px"><span id="mhelp"></span> <a href="#" id="mmore"><b>Ver explicación completa</b></a></div>
-          ${field({ name: 'rate', label: 'Tasa de interés', type: 'number', req: true, attrs: 'inputmode="decimal" min="0" step="0.01"', placeholder: '0' })}
-          <div class="field" data-f="frequency"><label>Frecuencia de pago</label>${seg('frequency', Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]), 'semanal')}<div class="err"></div></div>
-          ${field({ name: 'installments', label: 'Cantidad de cuotas', type: 'number', req: true, attrs: 'inputmode="numeric" min="1" max="1000" step="1"', placeholder: 'Ej.: 12' })}
+          ${field({ name: 'rate', label: 'Tasa de interés', type: 'number', req: true, value: q.tasa || '', attrs: 'inputmode="decimal" min="0" step="0.01"', placeholder: '0' })}
+          <div class="field" data-f="frequency"><label>Frecuencia de pago</label>${seg('frequency', Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]), F.FREQUENCIES[q.freq] ? q.freq : 'semanal')}<div class="err"></div></div>
+          ${field({ name: 'installments', label: 'Cantidad de cuotas', type: 'number', req: true, value: q.cuotas || '', attrs: 'inputmode="numeric" min="1" max="1000" step="1"', placeholder: 'Ej.: 12' })}
           <label class="check field hidden" id="sun"><input type="checkbox" name="skipSundays" checked> No cobrar los domingos</label>
           <div class="row2">${field({ name: 'disbursedDate', label: 'Fecha de entrega', type: 'date', req: true, value: today })}
             ${field({ name: 'firstDate', label: 'Fecha del primer pago', type: 'date', req: true, value: F.addDays(today, 7) })}</div>
           ${field({ name: 'dueDate', label: 'Fecha de vencimiento (calculada)', type: 'date', attrs: 'readonly tabindex="-1"', hint: 'Se calcula con la fecha del primer pago, la frecuencia y la cantidad de cuotas.' })}
-          ${field({ name: 'notes', label: 'Descripción u observaciones', type: 'textarea', rows: 2 })}
+          ${field({ name: 'notes', label: 'Descripción u observaciones', type: 'textarea', rows: 2, hint: 'Aparece en el contrato como "Condiciones particulares".' })}
+          <details class="sec"><summary>Fiador solidario / garante (opcional)</summary>
+            ${field({ name: 'gName', label: 'Nombre completo del fiador' })}
+            ${field({ name: 'gCedula', label: 'Cédula del fiador', placeholder: '000-0000000-0' })}
+            ${field({ name: 'gPhone', label: 'Teléfono del fiador', type: 'tel', attrs: 'inputmode="tel"' })}
+            ${field({ name: 'gAddress', label: 'Dirección del fiador' })}</details>
         </div>
         <div class="card" id="pv"><h3>Resumen del préstamo</h3><div class="muted small">Complete los datos para ver el cálculo.</div></div>
         <button class="btn block" type="submit">${icon('check')} Crear préstamo</button></form>` });
@@ -7605,7 +7840,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           <dt>Frecuencia</dt><dd>${F.FREQUENCIES[loan.frequency].label}${loan.frequency === 'diario' && loan.skipSundays ? ' (sin domingos)' : ''}</dd>
           <dt>Entrega del dinero</dt><dd>${U.date(loan.disbursedDate)}</dd><dt>Primer pago</dt><dd>${U.date(loan.firstDate)}</dd>
           <dt>Vencimiento</dt><dd>${U.date(st.cuotas[st.cuotas.length - 1].date)}${st.cuotas.length !== loan.installments ? `<div class="small muted">Original ${U.date(loan.dueDate)} · extendido por pagos mínimos</div>` : ''}</dd><dt>Registrado por</dt><dd>${esc(loan.createdBy || '—')}</dd>
-          ${loan.notes ? `<dt>Observaciones</dt><dd>${esc(loan.notes)}</dd>` : ''}</dl></div>
+          ${loan.notes ? `<dt>Observaciones</dt><dd>${esc(loan.notes)}</dd>` : ''}
+          ${loan.guarantor && loan.guarantor.name ? `<dt>Fiador solidario</dt><dd>${esc(loan.guarantor.name)}${loan.guarantor.cedula ? '<div class="small muted">' + esc(loan.guarantor.cedula) + '</div>' : ''}${loan.guarantor.phone ? `<div class="small"><a href="tel:${esc(loan.guarantor.phone)}">${esc(U.formatPhone(loan.guarantor.phone))}</a></div>` : ''}</dd>` : ''}</dl></div>
         <div class="card"><h3>Calendario de cuotas</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Fecha</th><th class="r">Cuota</th><th class="r">Pagado</th><th>Estado</th></tr></thead><tbody>
           ${st.cuotas.map((cu) => `<tr class="${cu.status === 'vencida' ? 'late' : cu.status === 'pagada' ? 'paid' : ''}"><td>${cu.n}</td><td>${U.date(cu.date)}${cu.daysLate ? `<div class="small">${cu.daysLate} día(s)</div>` : ''}${cu.extension ? '<div class="small c-muted">solo interés</div>' : ''}</td><td class="r">${U.num(cu.amount)}</td><td class="r">${U.num(cu.paid)}</td><td>${chip(cu.status)}</td></tr>`).join('')}
           </tbody></table></div></div>
@@ -7946,6 +8182,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
         ${item('/pagos', 'receipt', 't-success', 'Historial de pagos', 'Todos los recibos emitidos', 'pagos.ver')}
         ${item('/gastos', 'expense', 't-warning', 'Gastos y ganancias', 'Registre gastos y vea la ganancia neta', 'gastos.ver')}
         ${item('/reportes', 'chart', 't-info', 'Reportes', 'Por día, semana, mes y año · PDF y Excel', 'reportes.ver')}
+        ${item('/herramientas', 'tools', 't-warning', 'Herramientas', 'Simulador, calculadora, cuadre de caja y más')}
         ${item('/ayuda/prestamos', 'info', 't-primary', 'Tipos de préstamo', 'Cómo se calcula cada uno, con ejemplos')}
       </div>
       <div class="list">
@@ -7968,6 +8205,167 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       if (Cloud.on) await Cloud.logout(); else Auth.logout();
       loginScreen();
     };
+  });
+
+  /* ============================================================
+   * Herramientas: simulador, calculadora, tasas, caja y capacidad de pago
+   * ============================================================ */
+  const TOOLS = [
+    ['simulador', 'chart', 't-primary', 'Simulador', 'Compare los tipos de préstamo antes de prestar'],
+    ['calculadora', 'calc', 't-info', 'Calculadora', 'Cuentas rápidas sin salir de la app'],
+    ['caja', 'cash', 't-success', 'Cuadre de caja', 'Cuente el efectivo y compárelo con lo cobrado'],
+    ['capacidad', 'scale', 't-warning', 'Capacidad de pago', 'Cuánto le puede prestar a un cliente'],
+    ['tasas', 'percent', 't-danger', 'Convertir tasas', 'Diaria, semanal, quincenal, mensual y anual']
+  ];
+  UI.route('/herramientas', () => {
+    page({ title: 'Herramientas', back: '/', body: `<div class="tool-grid">${TOOLS.map(([k, ic, tone, t, s]) =>
+      `<button class="tool" data-go="/herramientas/${k}"><span class="dot ${tone}">${icon(ic)}</span><b>${t}</b><small>${s}</small></button>`).join('')}</div>` });
+  });
+  const num = (v) => { const n = Number(String(v || '').replace(/,/g, '')); return isFinite(n) ? n : 0; };
+  const pct = (n) => `${(Math.round(n * 100) / 100).toLocaleString('es-DO')}%`;
+
+  // 1) Simulador: compara todos los métodos con los mismos datos
+  UI.route('/herramientas/simulador', () => {
+    const main = page({ title: 'Simulador de préstamo', back: '/herramientas', body: `
+      <form class="card" id="f" novalidate>
+        <div class="row2">${field({ name: 'principal', label: `Monto (${U.cur()})`, type: 'number', value: 10000, attrs: 'inputmode="decimal" min="1"' })}
+          ${field({ name: 'rate', label: 'Interés por cuota (%)', type: 'number', value: 10, attrs: 'inputmode="decimal" min="0" step="0.01"' })}</div>
+        <div class="row2">${field({ name: 'installments', label: 'Cuotas', type: 'number', value: 12, attrs: 'inputmode="numeric" min="1" max="1000"' })}
+          ${field({ name: 'frequency', label: 'Frecuencia', value: 'quincenal', options: Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]) })}</div>
+      </form><div id="out"></div>` });
+    const form = $('#f', main), out = $('#out', main);
+    const calc = () => {
+      const d = UI.formData(form), P = num(d.principal), r = num(d.rate), n = parseInt(d.installments, 10) || 0;
+      if (P <= 0 || n <= 0) { out.innerHTML = `<div class="card">${empty('chart', 'Escriba el monto y las cuotas.')}</div>`; return; }
+      const today = F.todayISO(), first = d.frequency === 'mensual' ? F.addMonthsClamped(today, 1) : F.addDays(today, F.FREQUENCIES[d.frequency].days);
+      const rows = Object.entries(F.METHODS).map(([k, m]) => {
+        try { const s = F.buildSchedule({ principal: P, rate: r, rateType: 'porcentual', method: k, frequency: d.frequency, installments: n, firstDate: first, disbursedDate: today }); return { k, m, s }; } catch (e) { return null; }
+      }).filter(Boolean).sort((a, b) => b.s.totalInterest - a.s.totalInterest);
+      const best = rows[0] ? rows[0].s.totalInterest : 0;
+      out.innerHTML = `<div class="section-title">Resultado por tipo de préstamo</div>${rows.map(({ k, m, s }) => {
+        const first = s.schedule[0].amount, last = s.schedule[s.schedule.length - 1].amount, w = best ? Math.max(4, s.totalInterest / best * 100) : 0;
+        return `<div class="card sim">
+          <div class="flex between"><b>${esc(m.label)}</b><span class="chip t-success">Gana ${U.moneyShort(s.totalInterest)}</span></div>
+          <div class="progress mt" style="margin-top:8px"><i style="width:${w}%"></i></div>
+          <dl class="kv mt"><dt>Cuota</dt><dd>${Math.abs(first - last) < 0.02 ? money(first) : `${money(first)} → ${money(last)}`}</dd>
+            <dt>Total a cobrar</dt><dd>${money(s.total)}</dd><dt>Ganancia sobre lo prestado</dt><dd class="c-success">${pct(s.totalInterest / P * 100)}</dd>
+            <dt>Termina</dt><dd>${U.date(s.dueDate)}</dd></dl>
+          ${can('prestamos.crear') ? `<button class="btn secondary sm block mt" data-use="${k}">${icon('plus')} Crear préstamo así</button>` : ''}</div>`;
+      }).join('')}<p class="small muted center">El simulador no guarda nada. "Crear préstamo así" abre el formulario con estos datos.</p>`;
+      $$('[data-use]', out).forEach((b) => (b.onclick = () => go(`/prestamos/nuevo?monto=${P}&tasa=${r}&metodo=${b.dataset.use}&freq=${d.frequency}&cuotas=${n}`)));
+    };
+    form.addEventListener('input', calc); calc();
+  });
+
+  // 2) Calculadora simple
+  function evalExpr(src) {
+    const t = String(src).replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '').match(/\d*\.?\d+%?|[-+*/()]/g) || [];
+    let i = 0;
+    const peek = () => t[i], next = () => t[i++];
+    function factor() {
+      const x = next();
+      if (x === '-') return -factor();
+      if (x === '(') { const v = expr(); next(); return v; }
+      if (x && x.endsWith('%')) return parseFloat(x) / 100;
+      const v = parseFloat(x); if (!isFinite(v)) throw new Error('bad'); return v;
+    }
+    function term() { let v = factor(); while (peek() === '*' || peek() === '/') { const o = next(), w = factor(); v = o === '*' ? v * w : v / w; } return v; }
+    function expr() { let v = term(); while (peek() === '+' || peek() === '-') { const o = next(), w = term(); v = o === '+' ? v + w : v - w; } return v; }
+    const v = expr(); if (i < t.length || !isFinite(v)) throw new Error('bad'); return Math.round(v * 1e8) / 1e8;
+  }
+  UI.route('/herramientas/calculadora', () => {
+    const keys = ['C', '(', ')', '÷', '7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+', '0', '.', '⌫', '='];
+    const main = page({ title: 'Calculadora', back: '/herramientas', body: `
+      <div class="card calc"><div class="calc-screen"><div class="small muted" id="hist">&nbsp;</div><input id="ex" inputmode="none" autocomplete="off" value=""><div id="pre" class="small muted">&nbsp;</div></div>
+        <div class="calc-keys">${keys.map((k) => `<button type="button" data-k="${k}" class="${/[÷×\-+=]/.test(k) ? 'op' : k === 'C' ? 'clr' : ''}">${k}</button>`).join('')}</div>
+        <button type="button" class="btn ghost sm block" data-k="%" style="margin-top:8px">${icon('percent')} Porcentaje (ej.: 10000 × 15%)</button></div>` });
+    const ex = $('#ex', main), pre = $('#pre', main), hist = $('#hist', main);
+    const fmt = (v) => v.toLocaleString('es-DO', { maximumFractionDigits: 6 });
+    const preview = () => { try { pre.textContent = ex.value ? '= ' + fmt(evalExpr(ex.value)) : ' '; } catch (e) { pre.textContent = ' '; } };
+    const press = (k) => {
+      if (k === 'C') ex.value = '';
+      else if (k === '⌫') ex.value = ex.value.slice(0, -1);
+      else if (k === '=') { try { const v = evalExpr(ex.value); hist.textContent = ex.value + ' ='; ex.value = String(v); } catch (e) { toast('Operación incompleta', 'err'); } }
+      else ex.value += k;
+      preview();
+    };
+    $$('[data-k]', main).forEach((b) => (b.onclick = () => press(b.dataset.k)));
+    ex.addEventListener('input', preview);
+    ex.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); press('='); } });
+  });
+
+  // 3) Cuadre de caja
+  const BILLS = [2000, 1000, 500, 200, 100, 50], COINS = [25, 10, 5, 1];
+  UI.route('/herramientas/caja', () => {
+    const today = S.dashboard().today;
+    const row = (v, kind) => `<div class="cash-row"><span class="chip ${kind === 'b' ? 't-success' : 't-warning'}">${U.cur()} ${v.toLocaleString('es-DO')}</span><span class="muted">×</span>
+      <input class="in" type="number" min="0" inputmode="numeric" data-v="${v}" placeholder="0"><b data-sub="${v}">0.00</b></div>`;
+    const main = page({ title: 'Cuadre de caja', back: '/herramientas', body: `
+      <div class="hero hero-sm"><div class="label">Efectivo contado</div><div class="big" id="tot">${money(0)}</div>
+        <div class="row"><div><span class="label">Cobrado hoy en la app</span><b>${money(today)}</b></div><div><span class="label">Diferencia</span><b id="dif">${money(-today)}</b></div></div></div>
+      <div class="card"><h3>Billetes</h3>${BILLS.map((v) => row(v, 'b')).join('')}</div>
+      <div class="card"><h3>Monedas</h3>${COINS.map((v) => row(v, 'm')).join('')}</div>
+      <div class="row2">${field({ name: 'base', label: 'Fondo inicial de caja', type: 'number', attrs: 'inputmode="decimal" min="0"', placeholder: '0.00', hint: 'Lo que había antes de cobrar.' })}
+        <div class="field"><label>&nbsp;</label><button class="btn ghost block" id="clr" type="button">${icon('trash')} Limpiar</button></div></div>
+      <div class="banner t-info" id="msg">${icon('info')}<div>Escriba cuántos billetes y monedas tiene. La diferencia compara el efectivo (menos el fondo inicial) con lo cobrado hoy en la app.</div></div>` });
+    const calc = () => {
+      let t = 0;
+      $$('[data-v]', main).forEach((i) => { const s = num(i.value) * Number(i.dataset.v); t += s; $(`[data-sub="${i.dataset.v}"]`, main).textContent = U.num(s); });
+      const dif = F.r2(t - num($('[name=base]', main).value) - today);
+      $('#tot', main).textContent = money(t); $('#dif', main).textContent = (dif > 0 ? '+' : '') + money(dif);
+      const m = $('#msg', main);
+      if (t === 0) return;
+      m.className = 'banner ' + (Math.abs(dif) < 0.01 ? 't-success' : dif > 0 ? 't-info' : 't-danger');
+      m.innerHTML = `${icon(Math.abs(dif) < 0.01 ? 'check' : 'alert')}<div><b>${Math.abs(dif) < 0.01 ? 'La caja cuadra.' : dif > 0 ? `Sobran ${money(dif)}.` : `Faltan ${money(-dif)}.`}</b>${Math.abs(dif) < 0.01 ? '' : ' Revise si hay pagos sin registrar o dinero de otra cosa.'}</div>`;
+    };
+    main.addEventListener('input', calc);
+    $('#clr', main).onclick = () => { $$('input', main).forEach((i) => (i.value = '')); calc(); };
+  });
+
+  // 4) Capacidad de pago
+  UI.route('/herramientas/capacidad', () => {
+    const main = page({ title: 'Capacidad de pago', back: '/herramientas', body: `
+      <form class="card" id="f" novalidate>
+        ${field({ name: 'income', label: `Ingreso mensual del cliente (${U.cur()})`, type: 'number', attrs: 'inputmode="decimal" min="0"', placeholder: 'Ej.: 30000' })}
+        <div class="row2">${field({ name: 'expenses', label: 'Gastos fijos al mes', type: 'number', attrs: 'inputmode="decimal" min="0"', placeholder: 'Alquiler, luz, comida…' })}
+          ${field({ name: 'debts', label: 'Otras deudas al mes', type: 'number', attrs: 'inputmode="decimal" min="0"', placeholder: '0' })}</div>
+        <div class="field"><label>Qué tan estricto quiere ser</label>${seg('limit', [['30', 'Prudente 30%'], ['40', 'Normal 40%'], ['50', 'Flexible 50%']], '40')}</div>
+        <div class="row2">${field({ name: 'rate', label: 'Interés por cuota (%)', type: 'number', value: 10, attrs: 'inputmode="decimal" min="0" step="0.01"' })}
+          ${field({ name: 'installments', label: 'Cuotas', type: 'number', value: 12, attrs: 'inputmode="numeric" min="1"' })}</div>
+        ${field({ name: 'frequency', label: 'Frecuencia', value: 'quincenal', options: Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]) })}
+      </form><div id="out"></div>` });
+    const form = $('#f', main), out = $('#out', main);
+    const PER_MONTH = { diario: 26, semanal: 4.33, quincenal: 2, mensual: 1 };
+    const calc = () => {
+      const d = UI.formData(form), inc = num(d.income), free = inc - num(d.expenses) - num(d.debts);
+      if (inc <= 0) { out.innerHTML = `<div class="card">${empty('scale', 'Escriba el ingreso mensual del cliente.')}</div>`; return; }
+      const maxMonth = Math.max(0, Math.min(inc * Number(d.limit) / 100 - num(d.debts), free * 0.8));
+      const perCuota = maxMonth / PER_MONTH[d.frequency], n = parseInt(d.installments, 10) || 1, r = num(d.rate) / 100;
+      const maxLoan = perCuota / (1 / n + r); // método simple: cuota = P/n + P·r
+      const ok = free > 0 && maxMonth > 0;
+      out.innerHTML = `<div class="hero hero-sm ${ok ? '' : 'hero-bad'}"><div class="label">Puede prestarle hasta</div><div class="big">${money(ok ? Math.floor(maxLoan / 100) * 100 : 0)}</div>
+        <div class="row"><div><span class="label">Cuota máxima ${F.FREQUENCIES[d.frequency].label.toLowerCase()}</span><b>${money(perCuota)}</b></div><div><span class="label">Le queda libre al mes</span><b>${money(free)}</b></div></div></div>
+        <div class="banner ${ok ? 't-info' : 't-danger'}">${icon(ok ? 'info' : 'alert')}<div>${ok ? `Calculado con el método Simple o Soluto. Lo recomendable es que todas sus deudas no pasen del ${d.limit}% de lo que gana.` : 'Con esos números el cliente no tiene dinero libre para pagar un préstamo.'}</div></div>`;
+    };
+    form.addEventListener('input', calc); form.addEventListener('change', calc); calc();
+  });
+
+  // 5) Conversor de tasas
+  UI.route('/herramientas/tasas', () => {
+    const DAYS = { diario: 1, semanal: 7, quincenal: 15, mensual: 30, anual: 360 };
+    const LAB = { diario: 'Diaria', semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual', anual: 'Anual' };
+    const main = page({ title: 'Convertir tasas', back: '/herramientas', body: `
+      <form class="card" id="f" novalidate><div class="row2">${field({ name: 'rate', label: 'Tasa (%)', type: 'number', value: 10, attrs: 'inputmode="decimal" min="0" step="0.01"' })}
+        ${field({ name: 'from', label: 'Por cada', value: 'quincenal', options: Object.keys(DAYS).map((k) => [k, LAB[k]]) })}</div></form>
+      <div class="list" id="out"></div>
+      <div class="formula">Se calcula de forma proporcional por días (mes de 30 días y año de 360), como se acostumbra en préstamos de interés simple. Ejemplo: 10% quincenal equivale a 20% mensual y 240% anual.</div>` });
+    const form = $('#f', main), out = $('#out', main);
+    const calc = () => {
+      const d = UI.formData(form), daily = num(d.rate) / DAYS[d.from];
+      out.innerHTML = Object.keys(DAYS).map((k) => `<div class="item ${k === d.from ? 'sel' : ''}"><span class="dot t-primary" style="width:36px;height:36px;border-radius:11px;display:grid;place-items:center">${icon('percent')}</span>
+        <div class="grow"><div class="title">${LAB[k]}</div><div class="meta">por cada ${DAYS[k] === 1 ? 'día' : DAYS[k] + ' días'}</div></div><div class="amt">${pct(daily * DAYS[k])}</div></div>`).join('');
+    };
+    form.addEventListener('input', calc); form.addEventListener('change', calc); calc();
   });
 
   /* ============================================================
@@ -8075,7 +8473,21 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     draftLogo = null;
     const main = page({ title: 'Configuración', back: '/mas', body: `
       <div class="card"><h3>${icon('sun')} Apariencia</h3>${seg('theme', [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], theme)}</div>
-      <form class="card" id="f" novalidate><h3>Datos de la empresa</h3>${companyFields(c)}<button class="btn block" type="submit">${icon('check')} Guardar cambios</button></form>` });
+      <form class="card" id="f" novalidate><h3>Datos de la empresa</h3>${companyFields(c)}<button class="btn block" type="submit">${icon('check')} Guardar cambios</button></form>
+      <form class="card" id="fc" novalidate><h3>${icon('file')} Contratos</h3>
+        <p class="small muted">Datos que aparecen en el contrato de préstamo. El contrato es un modelo general: le recomendamos que un abogado lo revise antes de usarlo.</p>
+        ${seg('lenderType', [['persona', 'Préstamo personal'], ['empresa', 'A nombre de empresa']], (c.contract || {}).lenderType || 'persona')}
+        ${field({ name: 'lenderName', label: 'Nombre completo de quien presta', value: (c.contract || {}).lenderName || c.owner || '', placeholder: 'Ej.: Jonathan Hernández' })}
+        <div class="row2">${field({ name: 'ownerCedula', label: 'Cédula de quien presta', value: (c.contract || {}).ownerCedula || '', placeholder: '000-0000000-0' })}
+          ${field({ name: 'ownerNationality', label: 'Nacionalidad', value: (c.contract || {}).ownerNationality || 'dominicano(a)' })}</div>
+        ${field({ name: 'lenderAddress', label: 'Dirección de quien presta', value: (c.contract || {}).lenderAddress || c.address || '' })}
+        ${field({ name: 'city', label: 'Ciudad donde se firman los contratos', value: (c.contract || {}).city || '', placeholder: 'Ej.: Santo Domingo, Distrito Nacional' })}
+        <div class="row2">${field({ name: 'lateCuotas', label: 'Cuotas atrasadas para cobrar todo', type: 'number', value: (c.contract || {}).lateCuotas || 3, attrs: 'min="1" max="24" inputmode="numeric"' })}
+          ${field({ name: 'moraPct', label: 'Mora por atraso (%)', type: 'number', value: (c.contract || {}).moraPct || 0, attrs: 'min="0" max="100" step="0.01" inputmode="decimal"', hint: '0 = sin cláusula de mora. La app no la calcula sola.' })}</div>
+        <label class="check field"><input type="checkbox" name="notary" ${(c.contract || {}).notary ? 'checked' : ''}> Incluir legalización de firmas por notario</label>
+        <label class="check field"><input type="checkbox" name="witnesses" ${(c.contract || {}).witnesses ? 'checked' : ''}> Incluir firmas de dos testigos</label>
+        ${field({ name: 'extraClauses', label: 'Cláusulas adicionales (opcional)', type: 'textarea', rows: 4, value: (c.contract || {}).extraClauses || '', hint: 'Una cláusula por párrafo (deje una línea en blanco entre cláusulas).' })}
+        <div class="actions"><button type="button" class="btn ghost" id="cprev">${icon('file')} Ver contrato de ejemplo</button><button class="btn" type="submit">${icon('check')} Guardar</button></div></form>` });
     $$('input[name="theme"]', main).forEach((r) => (r.onchange = async () => { await DB.setMeta('theme', r.value); UI.applyTheme(); }));
     const form = $('#f', main); bindCompanyFields(form, c);
     UI.onSubmit(form, async (d) => {
@@ -8083,6 +8495,22 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       await DB.setMeta('company', companyFromForm(d, c)); draftLogo = null;
       UI.applyBrand(); toast('Datos de la empresa actualizados'); UI.render();
     });
+    const fc = $('#fc', main);
+    const contractFromForm = (d) => ({ lenderType: d.lenderType === 'empresa' ? 'empresa' : 'persona', lenderName: (d.lenderName || '').trim(), lenderAddress: (d.lenderAddress || '').trim(), ownerCedula: U.formatCedula(d.ownerCedula || ''), ownerNationality: (d.ownerNationality || '').trim() || 'dominicano(a)', city: (d.city || '').trim(),
+      lateCuotas: Math.max(1, Math.min(24, parseInt(d.lateCuotas, 10) || 3)), moraPct: Math.max(0, Number(d.moraPct) || 0), notary: !!d.notary, witnesses: !!d.witnesses, extraClauses: (d.extraClauses || '').trim() });
+    UI.onSubmit(fc, async (d) => { await DB.setMeta('company', { ...U.company(), contract: contractFromForm(d) }); toast('Configuración de contratos guardada'); });
+    $('#cprev', main).onclick = async () => {
+      const prev = U.company();
+      try {
+        const sample = F.buildSchedule({ principal: 10000, rate: 20, rateType: 'porcentual', method: 'simple', frequency: 'mensual', installments: 10, disbursedDate: F.todayISO(), firstDate: F.addMonthsClamped(F.todayISO(), 1) });
+        const loan = { number: 'P-EJEMPLO', principal: 10000, rate: 20, rateType: 'porcentual', method: 'simple', frequency: 'mensual', installments: 10, disbursedDate: F.todayISO(), firstDate: F.addMonthsClamped(F.todayISO(), 1), ...sample,
+          guarantor: { name: 'Fiador de Ejemplo', cedula: '001-0000000-1', address: 'Calle Ejemplo #1', phone: '8090000000' } };
+        root.DB.meta('company').contract = contractFromForm(UI.formData(fc));
+        const doc = Docs.contractPDF({ loan, client: { name: 'Cliente de Ejemplo', cedula: '001-0000000-0', address: 'Calle Principal #10, Santo Domingo', phone: '8091234567', workPosition: 'Comerciante' } });
+        await Docs.share(Docs.pdfBlob(doc), 'Contrato de ejemplo.pdf', { text: 'Contrato de ejemplo' });
+      } catch (e) { toast(e.message, 'err'); }
+      finally { void prev; }
+    };
   }, { perm: '*' });
 
   /* ============================================================
