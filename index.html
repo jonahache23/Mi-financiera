@@ -394,6 +394,12 @@ input.in, select.in, textarea.in { border-radius: 14px; background: var(--surfac
 }
 .seg input:checked + span { color: inherit; }
 .chart-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 34px 10px; background: var(--surface-2); border-radius: 14px; border: 1px dashed var(--border); }
+.flex .grow { flex: 1; }
+#mt { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+#mt::-webkit-scrollbar { display: none; }
+#mt .tab { white-space: nowrap; }
+.hero.hero-sm .row b { font-size: 13.5px; white-space: nowrap; }
+.hero.hero-sm .row > div { min-width: 0; }
 </style>
 </head>
 <body>
@@ -8211,11 +8217,12 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
    * Herramientas: simulador, calculadora, tasas, caja y capacidad de pago
    * ============================================================ */
   const TOOLS = [
-    ['simulador', 'chart', 't-primary', 'Simulador', 'Compare los tipos de préstamo antes de prestar'],
-    ['calculadora', 'calc', 't-info', 'Calculadora', 'Cuentas rápidas sin salir de la app'],
+    ['simulador', 'chart', 't-primary', 'Comparar préstamos', 'Todos los tipos de préstamo lado a lado'],
+    ['calculadora', 'calc', 't-info', 'Calculadora de préstamos', 'Vea cómo salen las cuotas en cada tipo de préstamo'],
     ['caja', 'cash', 't-success', 'Cuadre de caja', 'Cuente el efectivo y compárelo con lo cobrado'],
     ['capacidad', 'scale', 't-warning', 'Capacidad de pago', 'Cuánto le puede prestar a un cliente'],
-    ['tasas', 'percent', 't-danger', 'Convertir tasas', 'Diaria, semanal, quincenal, mensual y anual']
+    ['tasas', 'percent', 't-danger', 'Convertir tasas', 'Diaria, semanal, quincenal, mensual y anual'],
+    ['calculadora-normal', 'more', 't-primary', 'Calculadora normal', 'Sumas, restas y porcentajes']
   ];
   UI.route('/herramientas', () => {
     page({ title: 'Herramientas', back: '/', body: `<div class="tool-grid">${TOOLS.map(([k, ic, tone, t, s]) =>
@@ -8226,7 +8233,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   // 1) Simulador: compara todos los métodos con los mismos datos
   UI.route('/herramientas/simulador', () => {
-    const main = page({ title: 'Simulador de préstamo', back: '/herramientas', body: `
+    const main = page({ title: 'Comparar préstamos', back: '/herramientas', body: `
       <form class="card" id="f" novalidate>
         <div class="row2">${field({ name: 'principal', label: `Monto (${U.cur()})`, type: 'number', value: 10000, attrs: 'inputmode="decimal" min="1"' })}
           ${field({ name: 'rate', label: 'Interés por cuota (%)', type: 'number', value: 10, attrs: 'inputmode="decimal" min="0" step="0.01"' })}</div>
@@ -8250,14 +8257,78 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           <dl class="kv mt"><dt>Cuota</dt><dd>${Math.abs(first - last) < 0.02 ? money(first) : `${money(first)} → ${money(last)}`}</dd>
             <dt>Total a cobrar</dt><dd>${money(s.total)}</dd><dt>Ganancia sobre lo prestado</dt><dd class="c-success">${pct(s.totalInterest / P * 100)}</dd>
             <dt>Termina</dt><dd>${U.date(s.dueDate)}</dd></dl>
-          ${can('prestamos.crear') ? `<button class="btn secondary sm block mt" data-use="${k}">${icon('plus')} Crear préstamo así</button>` : ''}</div>`;
+          <div class="flex mt" style="gap:8px"><button class="btn ghost sm grow" data-see="${k}">${icon('list')} Ver cuotas</button>${can('prestamos.crear') ? `<button class="btn secondary sm grow" data-use="${k}">${icon('plus')} Crear así</button>` : ''}</div></div>`;
       }).join('')}<p class="small muted center">El simulador no guarda nada. "Crear préstamo así" abre el formulario con estos datos.</p>`;
+      $$('[data-see]', out).forEach((b) => (b.onclick = () => go(`/herramientas/calculadora?monto=${P}&tasa=${r}&metodo=${b.dataset.see}&freq=${d.frequency}&cuotas=${n}`)));
       $$('[data-use]', out).forEach((b) => (b.onclick = () => go(`/prestamos/nuevo?monto=${P}&tasa=${r}&metodo=${b.dataset.use}&freq=${d.frequency}&cuotas=${n}`)));
     };
     form.addEventListener('input', calc); calc();
   });
 
-  // 2) Calculadora simple
+  // 2) Calculadora de préstamos: cómo salen las cuotas según el tipo de préstamo
+  UI.route('/herramientas/calculadora', (_, q) => {
+    let method = F.METHODS[q.metodo] ? q.metodo : 'simple', showAll = false;
+    const today = F.todayISO();
+    const main = page({ title: 'Calculadora de préstamos', back: '/herramientas', body: `
+      <form class="card" id="f" novalidate>
+        ${field({ name: 'principal', label: `Monto a prestar (${U.cur()})`, type: 'number', value: q.monto || 10000, attrs: 'inputmode="decimal" min="1" step="0.01"' })}
+        <div class="field"><label>Tipo de interés</label>${seg('rateType', [['porcentual', 'Porcentaje (%)'], ['monto', `Monto fijo (${U.cur()})`]], 'porcentual')}</div>
+        <div class="row2">${field({ name: 'rate', label: 'Interés', type: 'number', value: q.tasa || 10, attrs: 'inputmode="decimal" min="0" step="0.01"' })}
+          ${field({ name: 'installments', label: 'Cantidad de cuotas', type: 'number', value: q.cuotas || 12, attrs: 'inputmode="numeric" min="1" max="1000"' })}</div>
+        <div class="field"><label>Frecuencia de pago</label>${seg('frequency', Object.entries(F.FREQUENCIES).map(([k, f]) => [k, f.label]), F.FREQUENCIES[q.freq] ? q.freq : 'quincenal')}</div>
+        <label class="check field hidden" id="sun"><input type="checkbox" name="skipSundays" checked> No cobrar los domingos</label>
+        ${field({ name: 'firstDate', label: 'Fecha del primer pago', type: 'date', value: '' })}
+      </form>
+      <div class="section-title">Tipo de préstamo</div>
+      <div class="tabs" id="mt">${Object.entries(F.METHODS).map(([k, m]) => `<button class="tab ${k === method ? 'active' : ''}" data-m="${k}">${esc(m.short || m.label)}</button>`).join('')}</div>
+      <div id="out"></div>` });
+    const form = $('#f', main), out = $('#out', main), first = $('[name="firstDate"]', form);
+    let firstTouched = false;
+    first.addEventListener('input', () => (firstTouched = true));
+    const autoFirst = (d) => { if (!firstTouched) first.value = d.frequency === 'mensual' ? F.addMonthsClamped(today, 1) : F.addDays(today, F.FREQUENCIES[d.frequency].days); };
+    const calc = () => {
+      const d = UI.formData(form);
+      autoFirst(d); d.firstDate = first.value; d.disbursedDate = today; d.method = method;
+      $('#sun', main).classList.toggle('hidden', d.frequency !== 'diario');
+      const pctOnly = method === 'saldo' || method === 'decreciente';
+      const montoOpt = $('input[name="rateType"][value="monto"]', form);
+      montoOpt.disabled = pctOnly; montoOpt.parentElement.style.opacity = pctOnly ? '.4' : '1';
+      if (pctOnly && d.rateType === 'monto') { $('input[name="rateType"][value="porcentual"]', form).checked = true; d.rateType = 'porcentual'; }
+      $('[data-f="rate"] label', form).textContent = d.rateType === 'porcentual' ? (method === 'fijo' ? 'Interés (% total)' : 'Interés (% por cuota)') : (method === 'fijo' ? `Interés total (${U.cur()})` : `Interés por cuota (${U.cur()})`);
+      if (!(num(d.principal) > 0) || d.rate === '' || !(parseInt(d.installments, 10) > 0)) { out.innerHTML = `<div class="card">${empty('calc', 'Escriba el monto, el interés y la cantidad de cuotas.')}</div>`; return; }
+      let r;
+      try { r = S.previewLoan(d); } catch (e) { out.innerHTML = `<div class="banner t-danger">${icon('alert')}<div>${esc(e.message)}</div></div>`; return; }
+      const s = r.schedule, f0 = s[0].amount, fl = s[s.length - 1].amount, same = Math.abs(f0 - fl) < 1, P = num(d.principal);
+      const lbl = F.FREQUENCIES[d.frequency].label.toLowerCase();
+      const rows = showAll ? s : s.slice(0, 12);
+      out.innerHTML = `
+        <div class="banner t-info">${icon('info')}<div>${esc(F.METHODS[method].help)} <a href="#" id="how"><b>¿Cómo funciona?</b></a></div></div>
+        <div class="hero hero-sm"><div class="label">${same ? `Cuota ${lbl}` : `Primera cuota ${lbl}`}</div>
+          <div class="big">${money(f0)}</div>${same ? '' : `<div class="label" style="margin:-8px 0 12px">Baja hasta ${money(fl)} en la última cuota</div>`}
+          <div class="row"><div><span class="label">Total a cobrar</span><b>${money(r.total)}</b></div><div><span class="label">Ganancia</span><b>${money(r.totalInterest)}</b></div><div><span class="label">Termina</span><b>${U.date(r.dueDate)}</b></div></div></div>
+        <div class="card"><h3>${icon('list')} Cuotas (${s.length})</h3>
+          <div class="tbl-wrap"><table class="tbl compact"><thead><tr><th>#</th><th>Fecha</th><th class="r">Capital</th><th class="r">Interés</th><th class="r">Cuota</th><th class="r">Debe</th></tr></thead><tbody>
+          ${rows.map((c) => `<tr><td>${c.n}</td><td>${U.date(c.date).slice(0, 6) + U.date(c.date).slice(8)}</td><td class="r">${U.num(c.capital)}</td><td class="r">${U.num(c.interest)}</td><td class="r"><b>${U.num(c.amount)}</b></td><td class="r">${U.num(c.balance)}</td></tr>`).join('')}
+          ${!showAll && s.length > 12 ? `<tr><td colspan="6" class="center"><a href="#" id="all">Ver las ${s.length} cuotas</a></td></tr>` : ''}
+          <tr style="font-weight:700"><td colspan="2">Totales</td><td class="r">${U.num(P)}</td><td class="r">${U.num(r.totalInterest)}</td><td class="r">${U.num(r.total)}</td><td></td></tr></tbody></table></div>
+          <div class="formula mt"><b>Cálculo:</b> ${esc(r.formula)}</div></div>
+        <div class="actions">
+          <a class="btn wa" id="wa" target="_blank" rel="noopener">${icon('whatsapp')} Enviar cotización</a>
+          ${can('prestamos.crear') ? `<button class="btn" id="mk">${icon('plus')} Crear préstamo así</button>` : ''}</div>
+        <p class="small muted center">Esta calculadora no guarda nada. Toque otro tipo de préstamo arriba para comparar.</p>`;
+      const c = DB.meta('company') || {};
+      const txt = `*Cotización de préstamo${c.name ? ' - ' + c.name : ''}*\nMonto: ${money(P)}\nTipo: ${F.METHODS[method].label}\nCuotas: ${s.length} ${lbl}${s.length === 1 ? '' : 'es'}`.replace('quincenales', 'quincenales').replace(/mensuales?$/m, (m) => m) +
+        `\n${same ? `Cuota: ${money(f0)}` : `Cuota: desde ${money(f0)} hasta ${money(fl)}`}\nTotal a pagar: ${money(r.total)}\nPrimer pago: ${U.date(s[0].date)}\nÚltimo pago: ${U.date(r.dueDate)}`;
+      $('#wa', out).href = 'https://wa.me/?text=' + encodeURIComponent(txt);
+      const mk = $('#mk', out); if (mk) mk.onclick = () => go(`/prestamos/nuevo?monto=${P}&tasa=${num(d.rate)}&metodo=${method}&freq=${d.frequency}&cuotas=${s.length}`);
+      $('#how', out).onclick = (e) => { e.preventDefault(); methodSheet(method); };
+      const all = $('#all', out); if (all) all.onclick = (e) => { e.preventDefault(); showAll = true; calc(); };
+    };
+    $$('[data-m]', main).forEach((b) => (b.onclick = () => { method = b.dataset.m; showAll = false; $$('[data-m]', main).forEach((x) => x.classList.toggle('active', x === b)); calc(); }));
+    form.addEventListener('input', calc); form.addEventListener('change', calc); calc();
+  });
+
+  // Calculadora normal (sumas, restas, porcentajes)
   function evalExpr(src) {
     const t = String(src).replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '').match(/\d*\.?\d+%?|[-+*/()]/g) || [];
     let i = 0;
@@ -8273,9 +8344,9 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     function expr() { let v = term(); while (peek() === '+' || peek() === '-') { const o = next(), w = term(); v = o === '+' ? v + w : v - w; } return v; }
     const v = expr(); if (i < t.length || !isFinite(v)) throw new Error('bad'); return Math.round(v * 1e8) / 1e8;
   }
-  UI.route('/herramientas/calculadora', () => {
+  UI.route('/herramientas/calculadora-normal', () => {
     const keys = ['C', '(', ')', '÷', '7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+', '0', '.', '⌫', '='];
-    const main = page({ title: 'Calculadora', back: '/herramientas', body: `
+    const main = page({ title: 'Calculadora normal', back: '/herramientas', body: `
       <div class="card calc"><div class="calc-screen"><div class="small muted" id="hist">&nbsp;</div><input id="ex" inputmode="none" autocomplete="off" value=""><div id="pre" class="small muted">&nbsp;</div></div>
         <div class="calc-keys">${keys.map((k) => `<button type="button" data-k="${k}" class="${/[÷×\-+=]/.test(k) ? 'op' : k === 'C' ? 'clr' : ''}">${k}</button>`).join('')}</div>
         <button type="button" class="btn ghost sm block" data-k="%" style="margin-top:8px">${icon('percent')} Porcentaje (ej.: 10000 × 15%)</button></div>` });
