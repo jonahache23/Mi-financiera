@@ -6344,8 +6344,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     if (!profile.active) { await BE().signOut(); throw new Error('Su usuario está desactivado. Hable con el administrador.'); }
     if (password) await rememberPassword(user.uid, password);
     // Desbloqueada solo mientras esta pestaña/app siga abierta: al volver a abrirla pide la contraseña
-    if (password) { try { sessionStorage.setItem('mf_unlocked', '1'); } catch (e) { /* */ } }
-    root.Auth.current = { ...profile, username: profile.email };
+    if (password) { try { sessionStorage.setItem('mf_unlocked', '1'); } catch (e) { /* */ } touch(); }
+    root.Auth.current = { ...profile, username: profile.username || displayLogin(profile.email) };
     locked = false;
     try { await ensureDevice(); } catch (e) { /* sin internet: se asigna luego */ }
     if (!attached) await listenAll(profile.role);
@@ -6366,7 +6366,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
           if (c.type === 'removed') DB.cacheDelete(col, c.id); else DB.cacheSet(col, c.data);
           if (col === 'users' && root.Auth.current && c.id === root.Auth.current.id) {
             if (c.type === 'removed' || !c.data.active) forceOut('Su usuario fue desactivado.');
-            else root.Auth.current = { ...c.data, username: c.data.email };
+            else root.Auth.current = { ...c.data, username: c.data.username || displayLogin(c.data.email) };
           }
         });
         pendingWrites = meta.pending ? Math.max(pendingWrites, 1) : 0;
@@ -6510,7 +6510,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   async function login(email, password) {
     await start();
-    const u = await BE().signIn(String(email).trim().toLowerCase(), password);
+    const u = await BE().signIn(loginEmail(email), password);
     return attach(u, password);
   }
   /** Desbloqueo tras inactividad: sin cerrar la sesión de la nube y sin necesitar internet. */
@@ -6523,7 +6523,19 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     return attach(u, password);
   }
   const clearUnlocked = () => { try { sessionStorage.removeItem('mf_unlocked'); } catch (e) { /* */ } };
-  const isUnlocked = () => { try { return sessionStorage.getItem('mf_unlocked') === '1'; } catch (e) { return false; } };
+  /* Última vez que la app estuvo abierta: si pasó más de 1 minuto cerrada, se pide la contraseña
+     (aunque el navegador restaure la pestaña o siga abierto en segundo plano). */
+  const SEEN = 'mf_lastSeen', CLOSED_LIMIT = 60000;
+  const touch = () => { try { localStorage.setItem(SEEN, String(Date.now())); } catch (e) { /* */ } };
+  setInterval(() => { if (document.visibilityState === 'visible' && root.Auth.current) touch(); }, 15000);
+  window.addEventListener('pagehide', () => { if (root.Auth.current) touch(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && root.Auth.current) touch(); });
+  const isUnlocked = () => {
+    try {
+      const recent = Date.now() - Number(localStorage.getItem(SEEN) || 0) < CLOSED_LIMIT;
+      return sessionStorage.getItem('mf_unlocked') === '1' && recent;
+    } catch (e) { return false; }
+  };
   function lock() { locked = true; root.Auth.current = null; clearUnlocked(); netPill(); }
   async function logout() {
     clearUnlocked();
@@ -6538,14 +6550,27 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
   }
 
   /* ---------- Usuarios ---------- */
-  async function createUser({ name, email, role, password }) {
+  /* Usuarios por nombre de usuario: Firebase necesita un correo, así que a quien no tiene correo
+     se le asigna uno interno (usuario@proyecto.local) que nunca ve. */
+  const USER_RE = /^[a-z0-9._-]{3,30}$/;
+  const internalEmail = (username) => `${username}@${(config() || {}).projectId || 'empresa'}.local`;
+  const isInternal = (email) => /\.local$/.test(String(email || ''));
+  /** Lo que el usuario escribe al entrar (usuario o correo) → correo de la cuenta. */
+  const loginEmail = (v) => { v = String(v || '').trim().toLowerCase(); return v.includes('@') ? v : internalEmail(v); };
+  const displayLogin = (email) => (isInternal(email) ? String(email).split('@')[0] : email);
+
+  async function createUser({ name, username, email, role, password }) {
+    username = String(username || '').trim().toLowerCase();
     email = String(email || '').trim().toLowerCase();
-    if (!U.isEmail(email)) throw new Error('Escriba un correo válido.');
     if (!name || name.trim().length < 2) throw new Error('Escriba el nombre.');
+    if (!USER_RE.test(username)) throw new Error('El usuario debe tener de 3 a 30 letras o números, sin espacios (puede usar punto o guion).');
+    if (email && !U.isEmail(email)) throw new Error('El correo no es válido (o déjelo vacío).');
     if (!password || password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
-    if (DB.all('users').some((u) => u.email === email)) throw new Error('Ya existe un usuario con ese correo.');
-    const uid = await BE().createUserSecondary(email, password);
-    const user = { id: uid, email, name: name.trim(), role, active: true, createdAt: new Date().toISOString() };
+    if (DB.all('users').some((u) => (u.username || displayLogin(u.email)) === username)) throw new Error('Ya existe ese nombre de usuario.');
+    if (email && DB.all('users').some((u) => u.email === email)) throw new Error('Ya existe un usuario con ese correo.');
+    const account = email || internalEmail(username);
+    const uid = await BE().createUserSecondary(account, password);
+    const user = { id: uid, email: account, username, name: name.trim(), role, active: true, createdAt: new Date().toISOString() };
     await BE().set('users', uid, user);
     DB.cacheSet('users', user);
     return user;
@@ -6578,7 +6603,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     disconnectDevice, isUnlocked, createUser, changePassword, restore, photo, loadPhotos, netPill,
     get on() { return configured(); }, get locked() { return locked; }, get pending() { return pendingWrites; },
     deviceCode: () => DB.meta('devCode') || '', user: () => (BE() && started ? BE().currentUser() : null),
-    resetPassword: (email) => BE().resetPassword(String(email).trim().toLowerCase())
+    resetPassword: (email) => { const e = loginEmail(email); if (isInternal(e)) return Promise.reject(new Error('Ese usuario no tiene correo. Pida al administrador que le cree un usuario nuevo.')); return BE().resetPassword(e); },
+    displayLogin, isInternal
   };
 })(this);
 </script>
@@ -7062,7 +7088,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     $('#app').innerHTML = `<div class="auth">${UI.logoHTML('logo-big')}<h1>${esc(c.name || 'Mi Financiera')}</h1>
       <p class="lead">${unlock ? 'Escriba su contraseña para desbloquear' : 'Inicie sesión con su cuenta de la empresa'}</p>
       <form class="card" id="f" novalidate>
-        ${unlock ? `<div class="banner t-info">${icon('user')}<div>${esc(u.email)}</div></div>` : field({ name: 'email', label: 'Correo', type: 'email', attrs: 'autocapitalize="off" autocomplete="username" inputmode="email"', value: localStorage.getItem('mf_lastemail') || '' })}
+        ${unlock ? `<div class="banner t-info">${icon('user')}<div>${esc(Cloud.displayLogin(u.email))}</div></div>` : field({ name: 'email', label: 'Usuario o correo', attrs: 'autocapitalize="off" autocomplete="username" spellcheck="false"', value: localStorage.getItem('mf_lastemail') || '' })}
         ${field({ name: 'password', label: 'Contraseña', type: 'password', attrs: 'autocomplete="current-password"' })}
         <button class="btn block" type="submit">${icon('lock')} ${unlock ? 'Desbloquear' : 'Entrar'}</button>
         <div class="center mt">${unlock ? '<a href="#" id="other">Entrar con otra cuenta</a>' : '<a href="#" id="forgot">¿Olvidó su contraseña?</a>'}</div>
@@ -7074,7 +7100,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const forgot = $('#forgot');
     if (forgot) forgot.onclick = async (e) => {
       e.preventDefault();
-      const email = await confirm({ title: 'Recuperar contraseña', message: 'Le enviaremos un correo para crear una contraseña nueva.', ok: 'Enviar correo', input: { type: 'email', placeholder: 'su@correo.com' } });
+      const email = await confirm({ title: 'Recuperar contraseña', message: 'Si su cuenta tiene correo, le enviaremos un enlace para crear una contraseña nueva. Si entra con usuario (sin correo), pida al administrador que le cree uno nuevo.', ok: 'Enviar correo', input: { type: 'email', placeholder: 'su@correo.com' } });
       if (!email) return;
       try { await Cloud.start(); await Cloud.resetPassword(email); toast('Correo enviado. Revise su bandeja (y spam).', 'ok', 5000); } catch (err) { toast(err.message, 'err', 5000); }
     };
@@ -7889,7 +7915,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const u = Auth.current, role = Auth.ROLES[u.role];
     const item = (href, ic, tone, t, s, perm) => (perm && !can(perm) ? '' : `<div class="menu-item" data-go="${href}"><span class="dot ${tone}">${icon(ic)}</span><div class="grow">${t}<small>${s}</small></div>${icon('back', 'c-muted" style="transform:rotate(180deg)')}</div>`);
     const main = page({ title: 'Más opciones', brand: true, body: `
-      <div class="card flex">${avatar({ name: u.name })}<div class="grow"><b>${esc(u.name)}</b><div class="small muted">${esc(u.email || '@' + u.username)} · ${role ? role.label : u.role}${Cloud.on ? ' · ☁ nube' : ''}</div></div></div>
+      <div class="card flex">${avatar({ name: u.name })}<div class="grow"><b>${esc(u.name)}</b><div class="small muted">${esc(Cloud.on ? u.username : '@' + u.username)} · ${role ? role.label : u.role}${Cloud.on ? ' · ☁ nube' : ''}</div></div></div>
       <div class="list">
         ${item('/pagos', 'receipt', 't-success', 'Historial de pagos', 'Todos los recibos emitidos', 'pagos.ver')}
         ${item('/gastos', 'expense', 't-warning', 'Gastos y ganancias', 'Registre gastos y vea la ganancia neta', 'gastos.ver')}
@@ -8074,7 +8100,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const main = page({ title: 'Usuarios y permisos', back: '/mas', fab: { href: '/usuarios?nuevo=1', label: 'Nuevo usuario' }, body: `
       <div class="banner t-info">${icon('info')}<div><b>Administrador:</b> acceso total. <b>Supervisor:</b> clientes, préstamos, pagos, gastos y reportes. <b>Cobrador:</b> consulta clientes y préstamos, registra pagos y ve los cobros.</div></div>
       <div class="list">${users.map((u) => `<div class="item" data-u="${u.id}">${avatar({ name: u.name })}<div class="grow"><div class="title">${esc(u.name)} ${u.active ? '' : '<span class="chip t-danger">Inactivo</span>'}</div>
-        <div class="meta">${esc(u.email || '@' + u.username)} · ${Auth.ROLES[u.role] ? Auth.ROLES[u.role].label : u.role}${u.lastLogin ? ' · último acceso ' + U.dateTime(u.lastLogin) : ''}</div></div></div>`).join('')}</div>` });
+        <div class="meta">${esc(Cloud.on ? (u.username || Cloud.displayLogin(u.email)) : '@' + u.username)} · ${Auth.ROLES[u.role] ? Auth.ROLES[u.role].label : u.role}${u.lastLogin ? ' · último acceso ' + U.dateTime(u.lastLogin) : ''}</div></div></div>`).join('')}</div>` });
     $$('[data-u]', main).forEach((i) => (i.onclick = () => userSheet(DB.get('users', i.dataset.u))));
     if (UI.parseHash().query.nuevo) { history.replaceState(null, '', '#/usuarios'); userSheet(null); }
   }, { perm: '*' });
@@ -8083,11 +8109,12 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const roles = Object.entries(Auth.ROLES).map(([k, r]) => [k, r.label]);
     const self = u && u.id === Auth.current.id;
     sheet(`<h2>${u ? esc(u.name) : 'Nuevo usuario'}</h2><form id="uf" novalidate>
-      ${u ? `<p class="small">${esc(u.email)}</p>` : field({ name: 'name', label: 'Nombre', req: true }) + field({ name: 'email', label: 'Correo (con este entra a la app)', type: 'email', req: true, attrs: 'autocapitalize="off" inputmode="email"' })}
+      ${u ? `<p class="small">Usuario: <b>${esc(u.username || Cloud.displayLogin(u.email))}</b>${!Cloud.isInternal(u.email) ? ' · ' + esc(u.email) : ''}</p>` : field({ name: 'name', label: 'Nombre', req: true }) + field({ name: 'username', label: 'Usuario (con este entra a la app)', req: true, placeholder: 'ej.: pedro', attrs: 'autocapitalize="off" autocomplete="off" spellcheck="false"', hint: 'Letras minúsculas y números, sin espacios.' }) + field({ name: 'email', label: 'Correo (opcional)', type: 'email', attrs: 'autocapitalize="off" inputmode="email"', hint: 'Solo si quiere que pueda recuperar su contraseña por correo.' })}
       ${field({ name: 'role', label: 'Rol', value: u ? u.role : 'cobrador', options: roles, attrs: self ? 'disabled' : '' })}
       ${u ? '' : field({ name: 'password', label: 'Contraseña inicial', type: 'password', req: true, attrs: 'autocomplete="new-password"', hint: 'Mínimo 8 caracteres. Entréguesela a la persona; luego puede cambiarla.' })}
       ${u && !self ? `<label class="check field"><input type="checkbox" name="active" ${u.active ? 'checked' : ''}> Usuario activo (desactívelo si la persona ya no trabaja con usted)</label>` : ''}
-      ${u ? '<button type="button" class="btn ghost block" id="rst">Enviarle correo para cambiar contraseña</button>' : ''}
+      ${u && !Cloud.isInternal(u.email) ? '<button type="button" class="btn ghost block" id="rst">Enviarle correo para cambiar contraseña</button>' : ''}
+      ${u && Cloud.isInternal(u.email) ? '<p class="small muted">Si esta persona olvida su contraseña: desactive este usuario y créele uno nuevo (por ejemplo "' + esc((u.username || '') + '2') + '").</p>' : ''}
       <div class="actions"><button type="button" class="btn ghost" id="cx">Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
     (el, close) => {
       $('#cx', el).onclick = close;
@@ -8095,7 +8122,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       if (rst) rst.onclick = async () => { try { await Cloud.resetPassword(u.email); toast('Correo enviado a ' + u.email); } catch (e) { toast(e.message, 'err'); } };
       UI.onSubmit($('#uf', el), async (d) => {
         if (!navigator.onLine) throw new Error('Necesita internet para administrar usuarios.');
-        if (!u) { await Cloud.createUser({ name: d.name, email: d.email, role: d.role, password: d.password }); close(); toast('Usuario creado. Ya puede entrar con su correo y contraseña.', 'ok', 4500); UI.render(); return; }
+        if (!u) { const nu = await Cloud.createUser({ name: d.name, username: d.username, email: d.email, role: d.role, password: d.password }); close(); toast(`Usuario creado. Entra con "${nu.username}" y su contraseña.`, 'ok', 5000); UI.render(); return; }
         if (!self) {
           if (u.role === 'admin' && d.role !== 'admin' && DB.all('users').filter((x) => x.role === 'admin' && x.active).length <= 1) throw new Error('Debe existir al menos un administrador activo.');
           await DB.put('users', { ...u, role: d.role, active: !!d.active });
@@ -8335,7 +8362,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       const main = page({ title: 'Sincronización en la nube', back: '/mas', body: `
         <div class="banner ${navigator.onLine ? 't-success' : 't-warning'}">${icon(navigator.onLine ? 'check' : 'alert')}<div><b>${navigator.onLine ? 'Conectado a la nube' : 'Sin conexión'}</b><br>
           ${Cloud.pending ? 'Hay cambios esperando para subir.' : navigator.onLine ? 'Todo está sincronizado.' : 'Los cambios se guardan aquí y se suben al volver la señal.'}<br>
-          <span class="small">Cuenta: ${esc(Auth.current.email || '')} · Dispositivo ${esc(Cloud.deviceCode() || '—')} · ${users.length} usuario(s)</span></div></div>
+          <span class="small">Cuenta: ${esc(Auth.current.username || '')} · Dispositivo ${esc(Cloud.deviceCode() || '—')} · ${users.length} usuario(s)</span></div></div>
         <div class="card"><h3>Conectar otro dispositivo</h3>
           <ol class="small" style="padding-left:18px;line-height:1.7">
             <li><b>Teléfono:</b> instale la app con el mismo enlace del APK.</li>
