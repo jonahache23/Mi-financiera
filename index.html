@@ -6343,6 +6343,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     if (!profile) { await BE().signOut(); throw new Error('Esta cuenta no pertenece a la empresa. Pida al administrador que lo agregue como usuario.'); }
     if (!profile.active) { await BE().signOut(); throw new Error('Su usuario está desactivado. Hable con el administrador.'); }
     if (password) await rememberPassword(user.uid, password);
+    // Desbloqueada solo mientras esta pestaña/app siga abierta: al volver a abrirla pide la contraseña
+    if (password) { try { sessionStorage.setItem('mf_unlocked', '1'); } catch (e) { /* */ } }
     root.Auth.current = { ...profile, username: profile.email };
     locked = false;
     try { await ensureDevice(); } catch (e) { /* sin internet: se asigna luego */ }
@@ -6520,8 +6522,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     }
     return attach(u, password);
   }
-  function lock() { locked = true; root.Auth.current = null; netPill(); }
+  const clearUnlocked = () => { try { sessionStorage.removeItem('mf_unlocked'); } catch (e) { /* */ } };
+  const isUnlocked = () => { try { return sessionStorage.getItem('mf_unlocked') === '1'; } catch (e) { return false; } };
+  function lock() { locked = true; root.Auth.current = null; clearUnlocked(); netPill(); }
   async function logout() {
+    clearUnlocked();
     stopListeners(); attached = false; locked = false;
     await BE().signOut(); root.Auth.current = null;
     STORES.forEach((s) => DB.clearStore(s));
@@ -6570,7 +6575,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   root.Cloud = {
     parseConfig, encodeCode, decodeCode, config, configured, start, attach, activate, join, login, unlock, lock, logout,
-    disconnectDevice, createUser, changePassword, restore, photo, loadPhotos, netPill,
+    disconnectDevice, isUnlocked, createUser, changePassword, restore, photo, loadPhotos, netPill,
     get on() { return configured(); }, get locked() { return locked; }, get pending() { return pendingWrites; },
     deviceCode: () => DB.meta('devCode') || '', user: () => (BE() && started ? BE().currentUser() : null),
     resetPassword: (email) => BE().resetPassword(String(email).trim().toLowerCase())
@@ -6882,7 +6887,8 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       // Modo nube: la sesión la guarda Firebase; los datos llegan de la nube (o de su caché sin internet)
       try {
         const u = await Cloud.start();
-        if (u) { await Cloud.attach(u); UI.applyBrand(); return startRouter(); }
+        // Al abrir de nuevo la app o el navegador se pide la contraseña (desbloqueo, funciona sin internet)
+        if (u && (Cloud.isUnlocked() || !DB.meta('pwlocal_' + u.uid))) { await Cloud.attach(u); UI.applyBrand(); return startRouter(); }
       } catch (e) { toast(e.message, 'err', 6000); }
       return loginScreen();
     }
