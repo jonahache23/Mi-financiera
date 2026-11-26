@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function isMember() { return signedIn() && exists(userPath()) && get(userPath()).data.active == true; }
+    function hasRole(roles) { return isMember() && get(userPath()).data.role in roles; }
+    function ownerUid() { return get(/databases/$(database)/documents/meta/owner).data.uid; }
+
+    // Dueño: se registra una sola vez, al activar la nube
+    match /meta/owner {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/meta/owner)
+        && request.resource.data.uid == request.auth.uid;
+    }
+    // Contador de dispositivos (numeración de recibos sin repetirse)
+    match /meta/devices {
+      allow read, write: if isMember();
+    }
+    // Datos de la empresa (nombre, logo, moneda)
+    match /meta/{key} {
+      allow read: if isMember();
+      allow write: if hasRole(['admin']);
+    }
+    // Nombre de usuario -> correo (para entrar escribiendo el usuario). Se consulta uno por uno, no se puede listar.
+    match /logins/{name} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if hasRole(['admin']);
+    }
+    // Usuarios: solo el administrador los crea o cambia
+    match /users/{uid} {
+      allow read: if isMember() || (signedIn() && request.auth.uid == uid);
+      allow create: if hasRole(['admin'])
+        || (signedIn() && uid == request.auth.uid && ownerUid() == request.auth.uid);
+      allow update, delete: if hasRole(['admin']);
+    }
+    // Clientes y sus fotos: administrador y supervisor
+    match /clients/{id} {
+      allow read: if isMember();
+      allow write: if hasRole(['admin', 'supervisor']);
+    }
+    match /photos/{id} {
+      allow read: if isMember();
+      allow write: if hasRole(['admin', 'supervisor']);
+    }
+    // Préstamos: crear admin/supervisor; borrar solo admin
+    match /loans/{id} {
+      allow read: if isMember();
+      allow create, update: if hasRole(['admin', 'supervisor']);
+      allow delete: if hasRole(['admin']);
+    }
+    // Pagos: cualquier usuario activo los registra; anular o borrar solo admin
+    match /payments/{id} {
+      allow read: if isMember();
+      allow create: if isMember();
+      allow update, delete: if hasRole(['admin']);
+    }
+    // Gastos: los cobradores no los ven
+    match /expenses/{id} {
+      allow read, write: if hasRole(['admin', 'supervisor']);
+    }
+  }
+}

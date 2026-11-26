@@ -6482,7 +6482,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     const owner = await BE().get('meta', 'owner').catch(() => null);
     if (owner && owner.uid !== user.uid) throw new Error('Esta nube ya tiene dueño. Para unir este dispositivo use "Conectar a mi empresa" con el código de conexión.');
     if (!owner) await BE().set('meta', 'owner', { id: 'owner', uid: user.uid, email });
-    await BE().set('users', user.uid, { id: user.uid, email, name: (me && me.name) || email, role: 'admin', active: true, createdAt: new Date().toISOString() });
+    const localName = me && me.username && USER_RE.test(String(me.username).toLowerCase()) ? String(me.username).toLowerCase() : null;
+    const ownerDoc = { id: user.uid, email, name: (me && me.name) || email, role: 'admin', active: true, createdAt: new Date().toISOString() };
+    if (localName) ownerDoc.username = localName; // Firestore no acepta campos "undefined"
+    await BE().set('users', user.uid, ownerDoc);
+    if (localName) await BE().set('logins', localName, { id: localName, email });
     onStep && onStep('Subiendo sus datos…');
     const ops = [];
     const company = DB.meta('company'); if (company) ops.push({ col: 'meta', id: 'company', data: { id: 'company', value: company } });
@@ -6508,10 +6512,31 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     await DB.setMeta('cloudActive', true);
   }
 
+  /** Resuelve lo que se escribe al entrar: correo, usuario con correo (tabla "logins") o usuario interno. */
+  async function resolveLogin(v) {
+    v = String(v || '').trim().toLowerCase();
+    if (v.includes('@')) return v;
+    try { const r = await BE().get('logins', v); if (r && r.email) return r.email; } catch (e) { /* sin acceso: usar interno */ }
+    return internalEmail(v);
+  }
   async function login(email, password) {
     await start();
-    const u = await BE().signIn(loginEmail(email), password);
+    const u = await BE().signIn(await resolveLogin(email), password);
     return attach(u, password);
+  }
+  /** Asigna un nombre de usuario a una cuenta que entra con correo (por ejemplo, el dueño). */
+  async function setUsername(uid, username) {
+    username = String(username || '').trim().toLowerCase();
+    if (!USER_RE.test(username)) throw new Error('El usuario debe tener de 3 a 30 letras o números, sin espacios.');
+    const u = DB.get('users', uid); if (!u) throw new Error('Usuario no encontrado.');
+    if (isInternal(u.email)) throw new Error('Este usuario ya entra con su nombre de usuario.');
+    const taken = DB.all('users').some((x) => x.id !== uid && (x.username || displayLogin(x.email)) === username);
+    if (taken) throw new Error('Ese nombre de usuario ya existe.');
+    const old = await BE().get('logins', username).catch(() => null);
+    if (old && old.email !== u.email) throw new Error('Ese nombre de usuario ya existe.');
+    if (u.username && u.username !== username) await BE().del('logins', u.username).catch(() => {});
+    await BE().set('logins', username, { id: username, email: u.email });
+    await DB.put('users', { ...u, username });
   }
   /** Desbloqueo tras inactividad: sin cerrar la sesión de la nube y sin necesitar internet. */
   async function unlock(password) {
@@ -6570,6 +6595,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
     if (email && DB.all('users').some((u) => u.email === email)) throw new Error('Ya existe un usuario con ese correo.');
     const account = email || internalEmail(username);
     const uid = await BE().createUserSecondary(account, password);
+    if (email) await BE().set('logins', username, { id: username, email });
     const user = { id: uid, email: account, username, name: name.trim(), role, active: true, createdAt: new Date().toISOString() };
     await BE().set('users', uid, user);
     DB.cacheSet('users', user);
@@ -6600,7 +6626,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
 
   root.Cloud = {
     parseConfig, encodeCode, decodeCode, config, configured, start, attach, activate, join, login, unlock, lock, logout,
-    disconnectDevice, isUnlocked, createUser, changePassword, restore, photo, loadPhotos, netPill,
+    disconnectDevice, isUnlocked, createUser, setUsername, changePassword, restore, photo, loadPhotos, netPill,
     get on() { return configured(); }, get locked() { return locked; }, get pending() { return pendingWrites; },
     deviceCode: () => DB.meta('devCode') || '', user: () => (BE() && started ? BE().currentUser() : null),
     resetPassword: (email) => { const e = loginEmail(email); if (isInternal(e)) return Promise.reject(new Error('Ese usuario no tiene correo. Pida al administrador que le cree un usuario nuevo.')); return BE().resetPassword(e); },
@@ -8114,6 +8140,7 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       ${u ? '' : field({ name: 'password', label: 'Contraseña inicial', type: 'password', req: true, attrs: 'autocomplete="new-password"', hint: 'Mínimo 8 caracteres. Entréguesela a la persona; luego puede cambiarla.' })}
       ${u && !self ? `<label class="check field"><input type="checkbox" name="active" ${u.active ? 'checked' : ''}> Usuario activo (desactívelo si la persona ya no trabaja con usted)</label>` : ''}
       ${u && !Cloud.isInternal(u.email) ? '<button type="button" class="btn ghost block" id="rst">Enviarle correo para cambiar contraseña</button>' : ''}
+      ${u && !Cloud.isInternal(u.email) ? field({ name: 'username', label: 'Usuario para entrar (además del correo)', value: u.username || '', placeholder: 'ej.: inversionesh', attrs: 'autocapitalize="off" autocomplete="off" spellcheck="false"', hint: 'Podrá entrar escribiendo este usuario o el correo.' }) : ''}
       ${u && Cloud.isInternal(u.email) ? '<p class="small muted">Si esta persona olvida su contraseña: desactive este usuario y créele uno nuevo (por ejemplo "' + esc((u.username || '') + '2') + '").</p>' : ''}
       <div class="actions"><button type="button" class="btn ghost" id="cx">Cancelar</button><button class="btn" type="submit">Guardar</button></div></form>`,
     (el, close) => {
@@ -8123,9 +8150,11 @@ var capacitorExports=function(e){"use strict";const t=(e=>e.CapacitorPlatforms=(
       UI.onSubmit($('#uf', el), async (d) => {
         if (!navigator.onLine) throw new Error('Necesita internet para administrar usuarios.');
         if (!u) { const nu = await Cloud.createUser({ name: d.name, username: d.username, email: d.email, role: d.role, password: d.password }); close(); toast(`Usuario creado. Entra con "${nu.username}" y su contraseña.`, 'ok', 5000); UI.render(); return; }
+        if (!Cloud.isInternal(u.email) && d.username && d.username.trim().toLowerCase() !== (u.username || '')) await Cloud.setUsername(u.id, d.username);
         if (!self) {
+          const cur = DB.get('users', u.id) || u;
           if (u.role === 'admin' && d.role !== 'admin' && DB.all('users').filter((x) => x.role === 'admin' && x.active).length <= 1) throw new Error('Debe existir al menos un administrador activo.');
-          await DB.put('users', { ...u, role: d.role, active: !!d.active });
+          await DB.put('users', { ...cur, role: d.role, active: !!d.active });
         }
         close(); toast('Usuario actualizado'); UI.render();
       });
